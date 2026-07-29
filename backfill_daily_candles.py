@@ -25,6 +25,11 @@ NIFTY50_SYMBOLS = [
 
 
 def load_env_file(path):
+    # On Railway (or anywhere the local .env files don't exist), fall back to
+    # real process env vars instead -- lets the same script run unattended in
+    # a container where secrets are injected as env vars, not files on disk.
+    if not os.path.exists(path):
+        return dict(os.environ)
     env = {}
     with open(path, "r", encoding="utf-8") as f:
         for line in f:

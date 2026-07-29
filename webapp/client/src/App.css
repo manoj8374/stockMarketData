@@ -121,17 +121,73 @@
 .filter-label {
   font-size: 12.5px;
   color: var(--text-muted);
-  min-width: 80px;
+  min-width: 110px;
 }
 
 .filter-row input {
-  width: 80px;
+  width: 100px;
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   font-size: 13px;
+}
+
+.months-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.month-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.momentum-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.weight-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weight-input input {
+  width: 60px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.weight-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.momentum-note {
+  margin-left: auto;
 }
 
 .banner.error {
@@ -276,11 +332,44 @@ tbody tr:last-child td {
 
 .name-cell {
   color: var(--text-muted);
-  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Symbol + Name stay visible while scrolling horizontally through the rest
+   of the columns. Fixed widths keep the left offsets exact so the two
+   sticky columns line up without gaps. */
+.sticky-symbol {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
+}
+
+.sticky-name {
+  position: sticky;
+  left: 110px;
+  z-index: 1;
+  background: var(--surface);
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
+  border-right: 1px solid var(--border);
+}
+
+thead th.sticky-symbol,
+thead th.sticky-name {
+  z-index: 3;
+  background: var(--header-bg);
+}
+
+tbody tr:hover .sticky-symbol,
+tbody tr:hover .sticky-name {
+  background: var(--row-hover);
+}
 
 .pct.positive {
   color: var(--positive);
@@ -292,6 +381,67 @@ tbody tr:last-child td {
   color: var(--negative);
   background: var(--negative-bg);
   border-radius: 6px;
+}
+
+.expandable {
+  cursor: pointer;
+}
+
+.expandable:hover {
+  text-decoration: underline;
+}
+
+.expand-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* react-tooltip positions/z-indexes this itself; we only theme its look.
+   max-width here must be >= .backref-table's width below -- otherwise the
+   table overflows past this box's opaque background and the row content
+   underneath bleeds through around the edges. */
+.backref-tooltip {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-width: 460px;
+  opacity: 1 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.backref-tooltip .react-tooltip-arrow {
+  background: var(--surface) !important;
+}
+
+.backref-breakdown {
+  padding: 12px 16px;
+  font-size: 12.5px;
+}
+
+.backref-pivot {
+  margin-bottom: 8px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.backref-grid {
+  display: grid;
+  grid-template-columns: 1fr 90px 70px 70px;
+  column-gap: 10px;
+  row-gap: 6px;
+  width: 420px;
+  font-size: 12.5px;
+  white-space: normal;
+}
+
+.backref-grid-header {
+  color: var(--text-muted);
+  font-weight: 600;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .empty-state {

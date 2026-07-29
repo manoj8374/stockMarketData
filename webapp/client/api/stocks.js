@@ -1,23 +1,31 @@
-const { getPool, STOCKS_QUERY } = require("./_db");
+import { getPool, buildStocksQuery, parseMonths } from "./_db.js";
 
 // Per-instance cache only (serverless instances don't share memory) -- just
-// smooths out bursts of requests hitting the same warm instance.
-let cache = { data: null, fetchedAt: 0 };
+// smooths out bursts of requests hitting the same warm instance. Keyed by
+// the requested month-set so different selections don't collide.
+const cacheByMonths = new Map();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
+    const months = parseMonths(req.query.months);
+    const cacheKey = months.join(",");
     const now = Date.now();
     const bypass = req.query.refresh === "1";
-    if (bypass || !cache.data || now - cache.fetchedAt >= CACHE_TTL_MS) {
-      const [rows] = await getPool().query(STOCKS_QUERY);
-      cache = { data: rows, fetchedAt: now };
+    let entry = cacheByMonths.get(cacheKey);
+
+    if (bypass || !entry || now - entry.fetchedAt >= CACHE_TTL_MS) {
+      const [rows] = await getPool().query(buildStocksQuery(months));
+      entry = { data: rows, fetchedAt: now };
+      cacheByMonths.set(cacheKey, entry);
     }
+
     res.setHeader("Cache-Control", "no-store");
     res.status(200).json({
-      count: cache.data.length,
-      generatedAt: new Date(cache.fetchedAt).toISOString(),
-      stocks: cache.data,
+      count: entry.data.length,
+      generatedAt: new Date(entry.fetchedAt).toISOString(),
+      months,
+      stocks: entry.data,
     });
   } catch (err) {
     console.error(err);

@@ -38,9 +38,16 @@ def get_candles_in_range(session, headers, instrument_token, from_date, to_date,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--from", dest="from_date", type=parse_date, default=date.today())
+    parser.add_argument("--from", dest="from_date", type=parse_date, default=None)
     parser.add_argument("--to", dest="to_date", type=parse_date, default=date.today())
+    # With no --from given, default to a trailing window rather than just
+    # today -- upserts are idempotent, so this makes an unattended daily cron
+    # run self-healing if a prior day's run was skipped (stale token, holiday
+    # weekend gap, etc).
+    parser.add_argument("--lookback-days", type=int, default=5)
     args = parser.parse_args()
+    if args.from_date is None:
+        args.from_date = args.to_date - timedelta(days=args.lookback_days)
 
     if args.from_date > args.to_date:
         print(f"--from ({args.from_date}) is after --to ({args.to_date})")

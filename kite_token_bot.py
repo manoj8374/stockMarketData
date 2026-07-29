@@ -35,7 +35,7 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 IST = timezone(timedelta(hours=5, minutes=30))
 REMINDER_HOUR_IST = 17
-REMINDER_MINUTE_IST = 30
+REMINDER_MINUTE_IST = 20
 REMINDER_TEXT = (
     "Reminder: refresh the Kite token before 6 PM IST.\n"
     "1. Open https://kite.zerodha.com/connect/login?api_key=9cdql2a4r4362vdg&v=3\n"

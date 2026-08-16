@@ -1,0 +1,272 @@
+<title>Layout demos — room to grow (Technicals / Fundamentals / Sentiment)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    background: #10141c; color: #e3e8ee;
+  }
+  table { border-collapse: collapse; width: 100%; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  :root {
+    --bg: #10141c; --panel: #161b24; --panel2: #1a2029; --border: #232a35;
+    --text: #e3e8ee; --muted: #76828f; --accent: #ff6a1a; --accent-bg: rgba(255,106,26,.12);
+    --pos: #17c98d; --neg: #f6465d;
+  }
+
+  /* ---- picker ---- */
+  .picker {
+    position: sticky; top: 0; z-index: 80; display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  .picker button {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--muted); cursor: pointer;
+  }
+  .picker button.on { background: var(--accent); color: #10141c; border-color: var(--accent); }
+  .picker .tag { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .layout { display: none; }
+  .layout.on { display: block; }
+
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--neg); font-weight: 600; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+  /* =====================================================================
+     A — SIDEBAR RAIL: vertical icon+label nav, scales to N sections
+  ===================================================================== */
+  .layA { display: flex; min-height: calc(100vh - 45px); }
+  .layA .rail { width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); padding: 16px 0; }
+  .layA .rail .brand { font-size: 15px; font-weight: 800; padding: 0 18px 18px; }
+  .layA .rail .brand span { color: var(--accent); }
+  .layA .rail button {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 13.5px;
+    font-weight: 600; padding: 10px 18px; border: none; background: none; color: var(--muted); cursor: pointer; border-left: 2px solid transparent;
+  }
+  .layA .rail button .ic { width: 18px; text-align: center; opacity: .85; }
+  .layA .rail button.on { color: var(--text); background: var(--panel2); border-left-color: var(--accent); }
+  .layA .rail .grp-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 14px 18px 6px; opacity: .7; }
+  .layA .main { flex: 1; padding: 22px 28px; min-width: 0; }
+  .layA .main h1 { font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+  .layA .main .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+  /* =====================================================================
+     B — EXPANDED TAB BAR: today's pattern, more tabs added
+  ===================================================================== */
+  .layB .topbar { display: flex; align-items: center; gap: 4px; padding: 16px 28px 0; }
+  .layB .brand { font-size: 17px; font-weight: 800; margin-right: 24px; }
+  .layB .brand span { color: var(--accent); }
+  .layB .tabs { display: flex; gap: 4px; }
+  .layB .tabs button {
+    font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 16px; border-radius: 7px 7px 0 0;
+    border: none; background: none; color: var(--muted); cursor: pointer;
+  }
+  .layB .tabs button.on { color: var(--text); background: var(--panel); }
+  .layB .divider { border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .layB .main { padding: 0 28px 28px; }
+
+  /* =====================================================================
+     C — MASTER-DETAIL COCKPIT: watchlist + per-stock deep-dive pane
+  ===================================================================== */
+  .layC { display: flex; height: calc(100vh - 45px); }
+  .layC .topbar-c { position: absolute; top: 45px; left: 0; right: 0; display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--panel); z-index: 5; }
+  .layC .brand { font-size: 15px; font-weight: 800; }
+  .layC .brand span { color: var(--accent); }
+  .layC .top-tabs { display: flex; gap: 4px; margin-left: 12px; }
+  .layC .top-tabs button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: none; background: none; color: var(--muted); cursor: pointer; }
+  .layC .top-tabs button.on { background: var(--panel2); color: var(--text); }
+  .layC .body-c { display: flex; width: 100%; padding-top: 61px; }
+  .layC .list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border); overflow-y: auto; }
+  .layC .list .search { margin: 12px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel2); color: var(--text); font-size: 12.5px; width: calc(100% - 24px); }
+  .layC .list .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .layC .list .row.sel { background: var(--accent-bg); border-left: 2px solid var(--accent); }
+  .layC .list .row .sym { font-size: 13px; font-weight: 700; }
+  .layC .list .row .nm { font-size: 11px; color: var(--muted); }
+  .layC .list .row .px { font-size: 12.5px; text-align: right; }
+  .layC .detail { flex: 1; padding: 20px 26px; overflow-y: auto; min-width: 0; }
+  .layC .detail .head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .layC .detail .head h1 { font-size: 20px; font-weight: 800; }
+  .layC .detail .head .px { font-size: 18px; font-weight: 700; }
+  .layC .detail .sub-tabs { display: flex; gap: 4px; margin: 14px 0 18px; border-bottom: 1px solid var(--border); }
+  .layC .detail .sub-tabs button { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border: none; background: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  .layC .detail .sub-tabs button.on { color: var(--text); border-color: var(--accent); }
+  .layC .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .layC .mini-card { padding: 14px 16px; }
+  .layC .mini-card .lbl { font-size: 11.5px; color: var(--muted); display: block; margin-bottom: 6px; }
+  .layC .mini-card .v { font-size: 17px; font-weight: 700; }
+
+  /* shared content blocks used inside all three layouts */
+  .block { margin-bottom: 22px; }
+  .block h2 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-grid .card { padding: 14px 16px; }
+  .stat-grid .lbl { font-size: 11.5px; color: var(--muted); display: block; margin-bottom: 6px; }
+  .stat-grid .v { font-size: 18px; font-weight: 700; }
+
+  table.mini { font-size: 12.5px; }
+  table.mini th { text-align: right; padding: 6px 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); }
+  table.mini th:first-child { text-align: left; }
+  table.mini td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  table.mini td:first-child { text-align: left; }
+
+  .gauge-wrap { display: flex; align-items: center; gap: 16px; }
+  .gauge { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; }
+  .news-item { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .news-item:last-child { border-bottom: none; }
+  .news-item .src { color: var(--muted); font-size: 11px; }
+</style>
+
+<div class="picker">
+  <button class="on" data-l="A">A · Sidebar Rail</button>
+  <button data-l="B">B · Expanded Tabs</button>
+  <button data-l="C">C · Master-Detail Cockpit</button>
+  <span class="tag">layout concepts only — not the real data/styling from your app</span>
+</div>
+
+<!-- ============================ A ============================ -->
+<div class="layout layA on" id="lay-A">
+  <div class="rail">
+    <div class="brand">NSE<span>·</span>Screener</div>
+    <button class="on"><span class="ic">▤</span> Screener</button>
+    <button><span class="ic">◎</span> Portfolio</button>
+    <div class="grp-lbl">Per-stock research</div>
+    <button><span class="ic">∿</span> Technicals</button>
+    <button><span class="ic">▦</span> Fundamentals</button>
+    <button><span class="ic">◐</span> Sentiment</button>
+    <div class="grp-lbl">Other</div>
+    <button><span class="ic">☰</span> Watchlists</button>
+    <button><span class="ic">⚙</span> Settings</button>
+  </div>
+  <div class="main">
+    <h1>Screener</h1>
+    <div class="sub">3,002 NSE equities · updated 8:41 PM</div>
+    <div class="block">
+      <div class="stat-grid">
+        <div class="card"><span class="lbl">Advancing</span><span class="v pos">1,842</span></div>
+        <div class="card"><span class="lbl">Declining</span><span class="v neg">1,098</span></div>
+        <div class="card"><span class="lbl">52W Highs</span><span class="v">64</span></div>
+        <div class="card"><span class="lbl">52W Lows</span><span class="v">31</span></div>
+      </div>
+    </div>
+    <div class="block">
+      <h2>Watchlist</h2>
+      <table class="mini">
+        <tr><th>Symbol</th><th>Price</th><th>1M</th><th>3M</th><th>Momentum</th></tr>
+        <tr><td>AMAGI</td><td class="num">658.60</td><td class="num pos">+1.18%</td><td class="num pos">+9.4%</td><td class="num pos">+14.6%</td></tr>
+        <tr><td>LLOYDSME</td><td class="num">2,015.10</td><td class="num pos">+2.9%</td><td class="num pos">+14.8%</td><td class="num pos">+21.4%</td></tr>
+        <tr><td>ACMESOLAR</td><td class="num">360.70</td><td class="num neg">−1.62%</td><td class="num neg">−6.1%</td><td class="num neg">−8.9%</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ B ============================ -->
+<div class="layout layB" id="lay-B">
+  <div class="topbar">
+    <div class="brand">NSE<span>·</span>Screener</div>
+    <div class="tabs">
+      <button class="on">Screener</button>
+      <button>Portfolio</button>
+      <button>Technicals</button>
+      <button>Fundamentals</button>
+      <button>Sentiment</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="main">
+    <div class="block">
+      <div class="stat-grid">
+        <div class="card"><span class="lbl">Advancing</span><span class="v pos">1,842</span></div>
+        <div class="card"><span class="lbl">Declining</span><span class="v neg">1,098</span></div>
+        <div class="card"><span class="lbl">52W Highs</span><span class="v">64</span></div>
+        <div class="card"><span class="lbl">52W Lows</span><span class="v">31</span></div>
+      </div>
+    </div>
+    <div class="block">
+      <h2>Watchlist</h2>
+      <table class="mini">
+        <tr><th>Symbol</th><th>Price</th><th>1M</th><th>3M</th><th>Momentum</th></tr>
+        <tr><td>AMAGI</td><td class="num">658.60</td><td class="num pos">+1.18%</td><td class="num pos">+9.4%</td><td class="num pos">+14.6%</td></tr>
+        <tr><td>LLOYDSME</td><td class="num">2,015.10</td><td class="num pos">+2.9%</td><td class="num pos">+14.8%</td><td class="num pos">+21.4%</td></tr>
+        <tr><td>ACMESOLAR</td><td class="num">360.70</td><td class="num neg">−1.62%</td><td class="num neg">−6.1%</td><td class="num neg">−8.9%</td></tr>
+      </table>
+      <p style="margin-top:12px; font-size:12px; color:var(--muted)">Closest to what exists today — same top tab bar, just more tabs added as new sections ship. Simple, but a wide tab bar gets cramped once you're past ~5 sections.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ C ============================ -->
+<div class="layout layC" id="lay-C">
+  <div class="topbar-c">
+    <div class="brand">NSE<span>·</span>Screener</div>
+    <div class="top-tabs">
+      <button class="on">Screener</button>
+      <button>Portfolio</button>
+    </div>
+  </div>
+  <div class="body-c">
+    <div class="list">
+      <input class="search" placeholder="Search watchlist…" />
+      <div class="row sel"><div><div class="sym">AARTIIND</div><div class="nm">Aarti Industries</div></div><div class="px pos">₹485.00<br>+4.1%</div></div>
+      <div class="row"><div><div class="sym">AMAGI</div><div class="nm">Amagi Media Labs</div></div><div class="px pos">₹658.60<br>+1.18%</div></div>
+      <div class="row"><div><div class="sym">LLOYDSME</div><div class="nm">Lloyds Metals</div></div><div class="px pos">₹2,015.10<br>+2.9%</div></div>
+      <div class="row"><div><div class="sym">ACMESOLAR</div><div class="nm">ACME Solar</div></div><div class="px neg">₹360.70<br>−1.62%</div></div>
+      <div class="row"><div><div class="sym">20MICRONS</div><div class="nm">20 Microns</div></div><div class="px pos">₹201.70<br>+0.14%</div></div>
+    </div>
+    <div class="detail">
+      <div class="head">
+        <h1>AARTIIND</h1>
+        <span class="px pos">₹485.00 <span style="font-size:13px">+4.1%</span></span>
+      </div>
+      <div style="color:var(--muted); font-size:12.5px;">Aarti Industries Ltd · NSE · Mkt Cap ₹17,315 Cr</div>
+
+      <div class="sub-tabs">
+        <button class="on">Overview</button>
+        <button>Technicals</button>
+        <button>Fundamentals</button>
+        <button>Sentiment</button>
+        <button>News</button>
+      </div>
+
+      <div class="block">
+        <div class="grid3">
+          <div class="card mini-card"><span class="lbl">RSI (14)</span><span class="v pos">61.2</span></div>
+          <div class="card mini-card"><span class="lbl">MACD</span><span class="v pos">Bullish</span></div>
+          <div class="card mini-card"><span class="lbl">50 / 200 DMA</span><span class="v">462 / 410</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>Fundamentals</h2>
+        <div class="grid3">
+          <div class="card mini-card"><span class="lbl">P/E (TTM)</span><span class="v">22.4</span></div>
+          <div class="card mini-card"><span class="lbl">ROE</span><span class="v pos">14.8%</span></div>
+          <div class="card mini-card"><span class="lbl">Debt / Equity</span><span class="v">0.61</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>Sentiment</h2>
+        <div class="gauge-wrap">
+          <div class="gauge" style="background: conic-gradient(var(--pos) 0% 68%, var(--border) 68% 100%);">68</div>
+          <div style="flex:1">
+            <div class="news-item"><div>Aarti Industries wins fresh export order from EU specialty chemicals buyer</div><div class="src">Moneycontrol · 2h ago</div></div>
+            <div class="news-item"><div>Brokerage upgrades target price citing margin recovery in H2</div><div class="src">ET Markets · 6h ago</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".picker button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".picker button").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      document.querySelectorAll(".layout").forEach(l => l.classList.remove("on"));
+      document.getElementById("lay-" + btn.dataset.l).classList.add("on");
+    });
+  });
+</script>

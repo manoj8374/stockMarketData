@@ -19,6 +19,7 @@ from backfill_daily_candles import (  # noqa: E402
     KITE_ENV_PATH, DB_ENV_PATH, MIN_REQUEST_INTERVAL, DATA_SOURCE_CODE, MAX_CHUNK_DAYS,
     load_env_file, connect_db_with_retry, RateLimiter, fetch_candles, insert_candles,
 )
+import build_price_snapshot  # noqa: E402
 
 
 def parse_date(s):
@@ -130,6 +131,12 @@ def main():
 
     conn.close()
     print(f"\nDone. {updated} instruments updated, {total_candles} candle rows upserted.")
+
+    # Rebuild the price snapshot the stocks API reads from, now that today's
+    # candles have landed -- see build_price_snapshot.py for why this exists
+    # (moves the expensive per-row candle computation off the request path).
+    print("\nRebuilding instrument_price_snapshot...")
+    build_price_snapshot.main()
 
 
 if __name__ == "__main__":

@@ -36,83 +36,94 @@ function parseMonths(raw) {
   return unique.length ? unique : [...DEFAULT_MONTHS];
 }
 
-// Fixed month-offsets needed for the "N-back momentum" feature, independent
-// of whichever months are checked in the frontend's Time Periods selector:
-//   1M-back pivot (offset 1) needs its own 1/3/6-ago prices -> offsets 2, 4, 7
-//   3M-back pivot (offset 3) needs its own 1/3/6-ago prices -> offsets 4, 6, 9
+// Fixed month-offsets needed for the "N-back momentum" feature -- see
+// _db.js for the full rationale. All covered by instrument_price_snapshot's
+// price_1m..price_12m columns already.
 const BACKREF_OFFSETS = [1, 2, 3, 4, 6, 7, 9];
 
-function buildStocksQuery(months) {
-  const innerCols = months
-    .map(
-      (m) => `
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS price_${m}m,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS date_${m}m`
-    )
-    .join(",");
-
-  const outerPriceCols = months.map((m) => `price_${m}m, date_${m}m`).join(",\n    ");
-  const outerReturnCols = months
-    .map(
-      (m) =>
-        `CASE WHEN price_${m}m > 0 THEN ROUND((current_price - price_${m}m) / price_${m}m * 100, 2) END AS return_${m}m`
-    )
+// Reads from instrument_price_snapshot (rebuilt once daily by
+// build_price_snapshot.py) -- see _db.js for the full rationale (this used
+// to run ~24 correlated subqueries against `candles` per row, 40+ seconds
+// for the full stocks list).
+function buildStocksQuery(months, filters = {}) {
+  const sortedMonths = [...months].sort((a, b) => a - b);
+  const returnCols = sortedMonths
+    .map((m, idx) => {
+      const baseline = idx === 0 ? "s.current_price" : `s.price_${sortedMonths[idx - 1]}m`;
+      return `CASE WHEN s.price_${m}m > 0 THEN ROUND((${baseline} - s.price_${m}m) / s.price_${m}m * 100, 2) END AS return_${m}m`;
+    })
     .join(",\n    ");
 
-  const backrefInnerCols = BACKREF_OFFSETS
-    .map(
-      (m) => `
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS bref_${m}m,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS brefdate_${m}m`
-    )
-    .join(",");
-
-  const backrefOuterCols = BACKREF_OFFSETS.map((m) => `bref_${m}m, brefdate_${m}m`).join(",\n    ");
-
-  const backrefReturn = (pivot, ago) =>
-    `CASE WHEN bref_${ago}m > 0 THEN ROUND((bref_${pivot}m - bref_${ago}m) / bref_${ago}m * 100, 2) END AS return_${pivot}back_${ago}m`;
+  const backrefReturn = (pivot, ago, baseline) =>
+    `CASE WHEN s.price_${ago}m > 0 THEN ROUND((s.price_${baseline}m - s.price_${ago}m) / s.price_${ago}m * 100, 2) END AS return_${pivot}back_${ago}m`;
   const backrefReturnCols = [
-    backrefReturn(1, 2), backrefReturn(1, 4), backrefReturn(1, 7),
-    backrefReturn(3, 4), backrefReturn(3, 6), backrefReturn(3, 9),
+    backrefReturn(1, 2, 1), backrefReturn(1, 4, 2), backrefReturn(1, 7, 4),
+    backrefReturn(3, 4, 3), backrefReturn(3, 6, 4), backrefReturn(3, 9, 6),
   ].join(",\n    ");
 
-  return `
+  const params = [];
+  let extraFilter = "";
+  if (filters.sector) {
+    extraFilter += " AND i.sector = ?";
+    params.push(filters.sector);
+  }
+  if (filters.industry) {
+    extraFilter += " AND i.industry = ?";
+    params.push(filters.industry);
+  }
+
+  const sql = `
   SELECT
-    id, tradingsymbol, name,
-    current_price, current_ts,
-    ${outerPriceCols},
-    all_time_high, ath_date,
-    market_cap_cr, market_cap_updated_at,
-    ${outerReturnCols},
-    ${backrefOuterCols},
+    i.id, i.tradingsymbol, i.name, i.sector, i.industry,
+    s.current_price, s.current_ts,
+    s.all_time_high, s.ath_date,
+    i.market_cap_cr, i.market_cap_updated_at,
+    ${months.map((m) => `s.price_${m}m AS price_${m}m, s.date_${m}m AS date_${m}m`).join(", ")},
+    ${BACKREF_OFFSETS.map((m) => `s.price_${m}m AS bref_${m}m, s.date_${m}m AS brefdate_${m}m`).join(", ")},
+    ${returnCols},
     ${backrefReturnCols},
-    CASE WHEN all_time_high > 0 THEN ROUND((current_price - all_time_high) / all_time_high * 100, 2) END AS diff_from_ath
-  FROM (
-    SELECT
-      i.id, i.tradingsymbol, i.name, i.market_cap_cr, i.market_cap_updated_at,
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id ORDER BY c.ts DESC LIMIT 1) AS current_price,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id ORDER BY c.ts DESC LIMIT 1) AS current_ts,${innerCols},${backrefInnerCols}
-      ,(SELECT MAX(c.high) FROM candles c WHERE c.instrument_id = i.id) AS all_time_high,
-      (SELECT c.ts FROM candles c WHERE c.instrument_id = i.id ORDER BY c.high DESC, c.ts DESC LIMIT 1) AS ath_date
-    FROM instruments i
-    WHERE ${EQUITY_FILTER}
-      AND EXISTS (SELECT 1 FROM candles c2 WHERE c2.instrument_id = i.id)
-  ) x
-  ORDER BY tradingsymbol
+    CASE WHEN s.all_time_high > 0 THEN ROUND((s.current_price - s.all_time_high) / s.all_time_high * 100, 2) END AS diff_from_ath
+  FROM instruments i
+  JOIN instrument_price_snapshot s ON s.instrument_id = i.id
+  WHERE ${EQUITY_FILTER}
+    ${extraFilter}
+  ORDER BY i.tradingsymbol
 `;
+  return { sql, params };
+}
+
+function buildSectorsQuery() {
+  return `
+    SELECT sector, COUNT(*) AS count
+    FROM instruments i
+    WHERE ${EQUITY_FILTER} AND sector IS NOT NULL
+    GROUP BY sector
+    ORDER BY sector
+  `;
+}
+
+function buildIndustriesQuery() {
+  return `
+    SELECT industry, COUNT(*) AS count
+    FROM instruments i
+    WHERE ${EQUITY_FILTER} AND sector = ? AND industry IS NOT NULL
+    GROUP BY industry
+    ORDER BY industry
+  `;
 }
 
 const cacheByMonths = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-async function getStocks(months) {
-  const cacheKey = months.join(",");
+async function getStocks(months, filters = {}) {
+  const cacheKey = `${months.join(",")}|${filters.sector || ""}|${filters.industry || ""}`;
   const now = Date.now();
   const entry = cacheByMonths.get(cacheKey);
   if (entry && now - entry.fetchedAt < CACHE_TTL_MS) {
     return entry;
   }
-  const [rows] = await pool.query(buildStocksQuery(months));
+  const { sql, params } = buildStocksQuery(months, filters);
+  const [rows] = await pool.query(sql, params);
   const fresh = { data: rows, fetchedAt: now };
   cacheByMonths.set(cacheKey, fresh);
   return fresh;
@@ -121,8 +132,35 @@ async function getStocks(months) {
 app.get("/api/stocks", async (req, res) => {
   try {
     const months = parseMonths(req.query.months);
-    const entry = await getStocks(months);
+    const sector = req.query.sector ? String(req.query.sector).trim() : null;
+    const industry = req.query.industry ? String(req.query.industry).trim() : null;
+    const entry = await getStocks(months, { sector, industry });
     res.json({ count: entry.data.length, generatedAt: new Date(entry.fetchedAt).toISOString(), months, stocks: entry.data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/sectors", async (req, res) => {
+  try {
+    const [rows] = await pool.query(buildSectorsQuery());
+    res.json({ sectors: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/industries", async (req, res) => {
+  const sector = req.query.sector ? String(req.query.sector).trim() : "";
+  if (!sector) {
+    res.status(400).json({ error: "sector query param is required" });
+    return;
+  }
+  try {
+    const [rows] = await pool.query(buildIndustriesQuery(), [sector]);
+    res.json({ sector, industries: rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

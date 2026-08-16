@@ -1,0 +1,412 @@
+<title>NSE Screener — 3 UI Directions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #0d0d0d;
+    overflow-x: hidden;
+  }
+
+  /* ---------- picker bar ---------- */
+  .picker {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #16171a;
+    border-bottom: 1px solid #2a2b2f;
+  }
+  .picker button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: 1px solid #33343a;
+    background: #1f2024;
+    color: #9a9ba3;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .picker button:hover { color: #e7e7ea; }
+  .picker button.active { background: #eeeeee; color: #111; border-color: #eeeeee; }
+  .picker .tag { color: #6b6c73; font-size: 12px; margin-left: auto; align-self: center; }
+
+  .demo { display: none; }
+  .demo.active { display: block; }
+
+  table { border-collapse: collapse; width: 100%; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  img, svg { display: block; }
+
+  /* =======================================================================
+     DEMO 1 — "Dealing Room": dark trading-terminal density
+  ======================================================================= */
+  .d1 {
+    --bg: #0a0e13;
+    --panel: #11161d;
+    --panel2: #151b23;
+    --border: #202832;
+    --text: #cdd5dd;
+    --muted: #6d7a87;
+    --accent: #e2a640;
+    --pos: #3fbf82;
+    --neg: #e2574c;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  .d1 .mono { font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace; }
+  .d1 .topbar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .d1 .brand {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .d1 .brand span { color: var(--muted); font-weight: 500; margin-left: 8px; letter-spacing: .02em; text-transform: none; }
+  .d1 .tabs { display: flex; gap: 4px; margin-left: 20px; }
+  .d1 .tabs button {
+    font: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    padding: 7px 14px; border-radius: 5px; border: none; background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .d1 .tabs button.on { background: var(--panel2); color: var(--text); }
+  .d1 .status {
+    margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);
+  }
+  .d1 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 0 3px rgba(63,191,130,.15); }
+
+  .d1 .ticker-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .d1 .tick { background: var(--panel); padding: 14px 24px; }
+  .d1 .tick .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: 6px; }
+  .d1 .tick .val { font-size: 20px; font-weight: 600; }
+  .d1 .tick .val.mono { font-family: ui-monospace, monospace; }
+  .d1 .tick .sub { font-size: 12px; margin-top: 3px; }
+
+  .d1 .body { padding: 20px 24px 0; }
+  .d1 .panel-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .d1 .panel-head h2 { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .d1 .panel-head .count { font-size: 12px; color: var(--muted); }
+
+  .d1 table { font-size: 13px; }
+  .d1 thead th {
+    text-align: right; padding: 9px 14px; font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .d1 thead th:first-child, .d1 thead th:nth-child(2) { text-align: left; }
+  .d1 tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .d1 tbody tr:hover { background: var(--panel); }
+  .d1 .sym { font-weight: 700; color: #f2f4f6; }
+  .d1 .nm { color: var(--muted); font-size: 12px; }
+  .d1 .pos { color: var(--pos); }
+  .d1 .neg { color: var(--neg); }
+  .d1 .pct-pill { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 12px; }
+  .d1 .pct-pill.pos { background: rgba(63,191,130,.12); }
+  .d1 .pct-pill.neg { background: rgba(226,87,76,.12); }
+  .d1 .bar-cell { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .d1 .bar-track { width: 46px; height: 5px; border-radius: 3px; background: #1c242d; overflow: hidden; }
+  .d1 .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* =======================================================================
+     DEMO 2 — "Ledger": paper-and-ink financial record
+  ======================================================================= */
+  .d2 {
+    --bg: #f5f6f0;
+    --ink: #1c1e1a;
+    --rule: #d4d2c4;
+    --forest: #1f5138;
+    --brass: #9c7a2e;
+    --brick: #8c3b2e;
+    --muted: #736f60;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  .d2 .sans { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
+  .d2 .masthead {
+    padding: 28px 40px 20px;
+    border-bottom: 3px solid var(--ink);
+  }
+  .d2 .masthead .row1 { display: flex; align-items: baseline; justify-content: space-between; }
+  .d2 .masthead h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  .d2 .masthead .date { font-family: -apple-system, sans-serif; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .d2 .masthead .strap { font-family: -apple-system, sans-serif; font-size: 12px; color: var(--forest); text-transform: uppercase; letter-spacing: .12em; margin-top: 6px; font-weight: 600; }
+  .d2 .tabs { display: flex; gap: 22px; margin-top: 16px; }
+  .d2 .tabs button {
+    font-family: -apple-system, sans-serif; font: inherit; font-size: 13px; font-weight: 600;
+    padding: 0 0 6px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer;
+  }
+  .d2 .tabs button.on { color: var(--ink); border-color: var(--brass); }
+
+  .d2 .ledger-summary {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    margin: 22px 40px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+  }
+  .d2 .ledger-summary div { padding: 14px 20px; border-right: 1px solid var(--rule); }
+  .d2 .ledger-summary div:last-child { border-right: none; }
+  .d2 .ledger-summary .lbl { font-family: -apple-system, sans-serif; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: 5px; }
+  .d2 .ledger-summary .val { font-size: 19px; font-weight: 700; }
+
+  .d2 .body { padding: 26px 40px 0; }
+  .d2 .section-eyebrow { font-family: -apple-system, sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--brass); font-weight: 700; margin-bottom: 8px; }
+  .d2 table { font-family: -apple-system, sans-serif; font-size: 13px; }
+  .d2 thead th {
+    text-align: right; padding: 8px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); border-bottom: 1.5px solid var(--ink);
+  }
+  .d2 thead th:first-child, .d2 thead th:nth-child(2) { text-align: left; }
+  .d2 tbody td { padding: 10px 14px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  .d2 tbody tr:nth-child(even) { background: rgba(28,30,26,.025); }
+  .d2 .sym { font-weight: 700; }
+  .d2 .nm { color: var(--muted); font-size: 12px; }
+  .d2 .pos { color: var(--forest); font-weight: 600; }
+  .d2 .neg { color: var(--brick); font-weight: 600; }
+
+  /* =======================================================================
+     DEMO 3 — "Pulse": clean modern card-based fintech
+  ======================================================================= */
+  .d3 {
+    --bg: #fafbf9;
+    --card: #ffffff;
+    --ink: #13232b;
+    --muted: #6d7c78;
+    --border: #e2e8e4;
+    --teal: #0c7a6b;
+    --tealbg: #e6f4f1;
+    --coral: #d6604b;
+    --coralbg: #fbeae6;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+  .d3 .topbar { display: flex; align-items: center; gap: 24px; padding: 20px 32px 0; }
+  .d3 .brand { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .d3 .brand .dot { color: var(--teal); }
+  .d3 .tabs { display: flex; gap: 6px; margin-left: 12px; background: #f0f2ef; padding: 4px; border-radius: 10px; }
+  .d3 .tabs button {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px; border: none;
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .d3 .tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .d3 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 22px 32px 0; }
+  .d3 .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .d3 .stat-card .lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .d3 .stat-card .val { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .d3 .stat-card .chip { align-self: flex-start; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .d3 .chip.pos { background: var(--tealbg); color: var(--teal); }
+  .d3 .chip.neg { background: var(--coralbg); color: var(--coral); }
+
+  .d3 .body { padding: 22px 32px 0; }
+  .d3 .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .d3 .panel-head { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .d3 .panel-head h2 { font-size: 15px; font-weight: 800; }
+  .d3 .panel-head .count { font-size: 12.5px; color: var(--muted); }
+  .d3 table { font-size: 13.5px; }
+  .d3 thead th {
+    text-align: right; padding: 10px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); background: #fbfcfa; border-bottom: 1px solid var(--border);
+  }
+  .d3 thead th:first-child, .d3 thead th:nth-child(2) { text-align: left; }
+  .d3 tbody td { padding: 12px 20px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .d3 tbody tr:last-child td { border-bottom: none; }
+  .d3 tbody tr:hover { background: #fbfcfa; }
+  .d3 .sym-cell { display: flex; align-items: center; gap: 10px; }
+  .d3 .avatar { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .d3 .sym { font-weight: 700; }
+  .d3 .nm { color: var(--muted); font-size: 12px; }
+  .d3 .pos { color: var(--teal); font-weight: 700; }
+  .d3 .neg { color: var(--coral); font-weight: 700; }
+  .d3 .badge { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+  .d3 .badge.pos { background: var(--tealbg); color: var(--teal); }
+  .d3 .badge.neg { background: var(--coralbg); color: var(--coral); }
+</style>
+
+<div class="picker">
+  <button class="active" data-demo="1">1 · Dealing Room</button>
+  <button data-demo="2">2 · Ledger</button>
+  <button data-demo="3">3 · Pulse</button>
+  <span class="tag">same data, three visual directions — click to preview</span>
+</div>
+
+<!-- ============================= DEMO 1 ============================= -->
+<div class="demo active d1" id="demo-1">
+  <div class="topbar">
+    <div class="brand">NSE // SCREENER<span>equities · momentum · portfolio</span></div>
+    <div class="tabs">
+      <button class="on">Stocks</button>
+      <button>Portfolio</button>
+    </div>
+    <div class="status"><span class="dot"></span> live · 3,002 instruments</div>
+  </div>
+  <div class="ticker-strip">
+    <div class="tick"><span class="lbl">Total Investment</span><span class="val mono">₹1,27,331.55</span></div>
+    <div class="tick"><span class="lbl">Current Value</span><span class="val mono">₹1,23,570.22</span></div>
+    <div class="tick"><span class="lbl">Total P&amp;L</span><span class="val mono neg">−₹4,026.48</span><span class="sub neg">−3.16%</span></div>
+    <div class="tick"><span class="lbl">Day&rsquo;s P&amp;L</span><span class="val mono neg">−₹98.39</span><span class="sub neg">−0.08%</span></div>
+  </div>
+  <div class="body">
+    <div class="panel-head"><h2>Watchlist</h2><span class="count">Showing 1–7 of 3,002 · sorted by momentum</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th><th>Name</th><th>Mkt Cap</th><th>Price</th><th>1M</th><th>3M</th><th>6M</th><th>Momentum</th>
+        </tr>
+      </thead>
+      <tbody id="d1-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================= DEMO 2 ============================= -->
+<div class="demo d2" id="demo-2">
+  <div class="masthead">
+    <div class="row1">
+      <h1>NSE Equities Register</h1>
+      <span class="date">30 July 2026 · 20:24 IST</span>
+    </div>
+    <div class="strap">Holdings &amp; Market Ledger</div>
+    <div class="tabs">
+      <button class="on">Stocks</button>
+      <button>Portfolio</button>
+    </div>
+  </div>
+  <div class="ledger-summary">
+    <div><span class="lbl">Total Investment</span><span class="val">₹1,27,331.55</span></div>
+    <div><span class="lbl">Current Value</span><span class="val">₹1,23,570.22</span></div>
+    <div><span class="lbl">Total P&amp;L</span><span class="val neg">−₹4,026.48</span></div>
+    <div><span class="lbl">Day&rsquo;s P&amp;L</span><span class="val neg">−₹98.39</span></div>
+  </div>
+  <div class="body">
+    <div class="section-eyebrow">Watchlist — Entry No. 1–7 of 3,002</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th><th>Name</th><th>Mkt Cap</th><th>Price</th><th>1M</th><th>3M</th><th>6M</th><th>Momentum</th>
+        </tr>
+      </thead>
+      <tbody id="d2-rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================= DEMO 3 ============================= -->
+<div class="demo d3" id="demo-3">
+  <div class="topbar">
+    <div class="brand">NSE<span class="dot">·</span>Screener</div>
+    <div class="tabs">
+      <button class="on">Stocks</button>
+      <button>Portfolio</button>
+    </div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-card"><span class="lbl">Total Investment</span><span class="val">₹1,27,331.55</span></div>
+    <div class="stat-card"><span class="lbl">Current Value</span><span class="val">₹1,23,570.22</span></div>
+    <div class="stat-card"><span class="lbl">Total P&amp;L</span><span class="val neg">−₹4,026.48</span><span class="chip neg">−3.16%</span></div>
+    <div class="stat-card"><span class="lbl">Day&rsquo;s P&amp;L</span><span class="val neg">−₹98.39</span><span class="chip neg">−0.08%</span></div>
+  </div>
+  <div class="body">
+    <div class="panel">
+      <div class="panel-head"><h2>Watchlist</h2><span class="count">1–7 of 3,002 stocks</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th><th>Mkt Cap</th><th>Price</th><th>1M</th><th>3M</th><th>6M</th><th>Momentum</th>
+          </tr>
+        </thead>
+        <tbody id="d3-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const rows = [
+    { sym: "AMAGI",     nm: "Amagi Media Labs",      cap: "₹8,412 Cr",  price: "658.60",  m1: 1.18,  m3: 9.4,  m6: 22.1, mo: 14.6, color: "#0c7a6b" },
+    { sym: "BALAMINES", nm: "Balaji Amines",         cap: "₹3,180 Cr",  price: "2,243.40", m1: -1.23, m3: 4.2,  m6: 11.3, mo: 6.8,  color: "#9c5a2e" },
+    { sym: "ITBEES",    nm: "Nippon IT Bees ETF",    cap: "₹612 Cr",    price: "34.62",   m1: 0.23,  m3: -1.9, m6: 3.4,  mo: 1.1,  color: "#5a6cff" },
+    { sym: "LLOYDSME",  nm: "Lloyds Metals & Energy",cap: "₹41,760 Cr", price: "2,015.10", m1: 2.9,   m3: 14.8, m6: 38.5, mo: 21.4, color: "#c94f3a" },
+    { sym: "ACMESOLAR", nm: "ACME Solar Holdings",   cap: "₹18,204 Cr", price: "360.70",  m1: -1.62, m3: -6.1, m6: -12.4,mo: -8.9, color: "#d9a634" },
+    { sym: "20MICRONS", nm: "20 Microns",            cap: "₹722 Cr",    price: "201.70",  m1: 0.14,  m3: 13.9, m6: 0.9,  mo: 4.7,  color: "#2f8f5b" },
+    { sym: "AARTIIND",  nm: "Aarti Industries",      cap: "₹17,315 Cr", price: "485.00",  m1: 4.1,   m3: -3.3, m6: 36.4, mo: 18.0, color: "#8c4fc9" },
+  ];
+  const pct = (v) => (v > 0 ? "+" : "") + v.toFixed(2) + "%";
+  const cls = (v) => (v >= 0 ? "pos" : "neg");
+  const initials = (s) => s.slice(0, 2).toUpperCase();
+
+  document.getElementById("d1-rows").innerHTML = rows.map(r => `
+    <tr>
+      <td class="sym">${r.sym}</td>
+      <td class="nm">${r.nm}</td>
+      <td class="num mono">${r.cap}</td>
+      <td class="num mono">₹${r.price}</td>
+      <td class="num mono ${cls(r.m1)}">${pct(r.m1)}</td>
+      <td class="num mono ${cls(r.m3)}">${pct(r.m3)}</td>
+      <td class="num mono ${cls(r.m6)}">${pct(r.m6)}</td>
+      <td class="num">
+        <div class="bar-cell">
+          <span class="mono ${cls(r.mo)}">${pct(r.mo)}</span>
+          <span class="bar-track"><span class="bar-fill" style="width:${Math.min(Math.abs(r.mo)*3,100)}%; background:${r.mo>=0?'#3fbf82':'#e2574c'}"></span></span>
+        </div>
+      </td>
+    </tr>`).join("");
+
+  document.getElementById("d2-rows").innerHTML = rows.map(r => `
+    <tr>
+      <td class="sym">${r.sym}</td>
+      <td class="nm">${r.nm}</td>
+      <td class="num">${r.cap}</td>
+      <td class="num">₹${r.price}</td>
+      <td class="num ${cls(r.m1)}">${pct(r.m1)}</td>
+      <td class="num ${cls(r.m3)}">${pct(r.m3)}</td>
+      <td class="num ${cls(r.m6)}">${pct(r.m6)}</td>
+      <td class="num ${cls(r.mo)}">${pct(r.mo)}</td>
+    </tr>`).join("");
+
+  document.getElementById("d3-rows").innerHTML = rows.map(r => `
+    <tr>
+      <td><div class="sym-cell"><span class="avatar" style="background:${r.color}">${initials(r.sym)}</span><div><div class="sym">${r.sym}</div><div class="nm">${r.nm}</div></div></div></td>
+      <td class="num">${r.cap}</td>
+      <td class="num">₹${r.price}</td>
+      <td class="num ${cls(r.m1)}">${pct(r.m1)}</td>
+      <td class="num ${cls(r.m3)}">${pct(r.m3)}</td>
+      <td class="num ${cls(r.m6)}">${pct(r.m6)}</td>
+      <td class="num"><span class="badge ${cls(r.mo)}">${pct(r.mo)}</span></td>
+    </tr>`).join("");
+
+  document.querySelectorAll(".picker button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".picker button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".demo").forEach(d => d.classList.remove("active"));
+      document.getElementById("demo-" + btn.dataset.demo).classList.add("active");
+    });
+  });
+</script>

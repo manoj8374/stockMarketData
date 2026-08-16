@@ -1,3 +1,4 @@
 .env
 upstox.env
 __pycache__/
+webapp/server/*.log

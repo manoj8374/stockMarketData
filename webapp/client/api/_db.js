@@ -21,6 +21,22 @@ export function getPool() {
   return pool;
 }
 
+// app_settings is a small key/value store for things the web app needs to
+// read/write at runtime (currently just the Kite access_token, refreshed via
+// the in-app Kite login flow) without requiring a redeploy for a changed
+// value to take effect, unlike a Vercel env var.
+export async function getSetting(name) {
+  const [rows] = await getPool().query("SELECT value FROM app_settings WHERE name = ?", [name]);
+  return rows[0]?.value ?? null;
+}
+
+export async function setSetting(name, value) {
+  await getPool().query(
+    "INSERT INTO app_settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
+    [name, value]
+  );
+}
+
 // Same "genuine equity" filter used by the Python backfill scripts.
 const EQUITY_FILTER = `
   i.segment = 'NSE'
@@ -53,71 +69,108 @@ export function parseMonths(raw) {
 // of whichever months are checked in the frontend's Time Periods selector:
 //   1M-back pivot (offset 1) needs its own 1/3/6-ago prices -> offsets 2, 4, 7
 //   3M-back pivot (offset 3) needs its own 1/3/6-ago prices -> offsets 4, 6, 9
+// All of these are already columns on instrument_price_snapshot (which
+// covers every offset 1-12), so no separate "bref_" columns are needed --
+// they just read price_2m/price_4m/price_7m/etc. directly.
 const BACKREF_OFFSETS = [1, 2, 3, 4, 6, 7, 9];
 
-// Builds the stocks query for an arbitrary set of month offsets (1-12).
-// Each offset adds a price_Nm/date_Nm inner-subquery pair and a return_Nm
-// outer computed column, mirroring the original hardcoded 1/3/6 pattern.
-export function buildStocksQuery(months) {
-  const innerCols = months
-    .map(
-      (m) => `
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS price_${m}m,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS date_${m}m`
-    )
-    .join(",");
-
-  const outerPriceCols = months.map((m) => `price_${m}m, date_${m}m`).join(",\n    ");
-  const outerReturnCols = months
-    .map(
-      (m) =>
-        `CASE WHEN price_${m}m > 0 THEN ROUND((current_price - price_${m}m) / price_${m}m * 100, 2) END AS return_${m}m`
-    )
+// Builds the stocks query for an arbitrary set of month offsets (1-12), and
+// optionally restricted to a single sector and/or industry. Returns
+// { sql, params } -- sector/industry are always passed as bound params
+// (never string-interpolated) since, unlike `months`, they're free text.
+//
+// Reads from instrument_price_snapshot (rebuilt once daily by
+// build_price_snapshot.py) instead of running correlated subqueries against
+// `candles` per row -- that used to mean ~24 subqueries x ~3,000 rows on
+// every request (40+ seconds). price_Nm/date_Nm here are already
+// staleness-guarded at snapshot-build time, so this is now a single flat
+// SELECT with a JOIN: no nested subqueries, since price_Nm is a plain table
+// column and can be referenced directly by return_Nm in the same SELECT
+// list (the nesting in earlier versions existed only to work around MySQL
+// not allowing one alias to reference another alias in the same list).
+export function buildStocksQuery(months, filters = {}) {
+  // Each period's return is the *gap* since the next-smaller checked period,
+  // not the cumulative return since today -- e.g. with 1/3/6 checked, 3M
+  // Returns is the move from the 3M-ago price to the 1M-ago price (not to
+  // today), and 6M Returns is the move from 6M-ago to 3M-ago. This avoids
+  // the same recent price action being counted in every larger bucket, so
+  // Momentum Score (a weighted sum of these) reflects genuinely distinct
+  // time segments instead of overlapping ones. The smallest checked month
+  // has no smaller period to gap against, so it stays "vs today" as before.
+  const sortedMonths = [...months].sort((a, b) => a - b);
+  const returnCols = sortedMonths
+    .map((m, idx) => {
+      const baseline = idx === 0 ? "s.current_price" : `s.price_${sortedMonths[idx - 1]}m`;
+      return `CASE WHEN s.price_${m}m > 0 THEN ROUND((${baseline} - s.price_${m}m) / s.price_${m}m * 100, 2) END AS return_${m}m`;
+    })
     .join(",\n    ");
 
-  // Independent of `months` -- always fetched so the 1M-back/3M-back
-  // momentum columns work regardless of what's checked in Time Periods.
-  const backrefInnerCols = BACKREF_OFFSETS
-    .map(
-      (m) => `
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS bref_${m}m,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id AND c.ts <= DATE_SUB(CURDATE(), INTERVAL ${m} MONTH) ORDER BY c.ts DESC LIMIT 1) AS brefdate_${m}m`
-    )
-    .join(",");
-
-  const backrefOuterCols = BACKREF_OFFSETS.map((m) => `bref_${m}m, brefdate_${m}m`).join(",\n    ");
-
   // return_XbackYm = the "Y-months-ago-from-pivot" return used by the
-  // X-back momentum score, where the pivot itself is bref_Xm.
-  const backrefReturn = (pivot, ago) =>
-    `CASE WHEN bref_${ago}m > 0 THEN ROUND((bref_${pivot}m - bref_${ago}m) / bref_${ago}m * 100, 2) END AS return_${pivot}back_${ago}m`;
+  // X-back momentum score. Same gap logic as the main Returns columns: each
+  // bucket measures only the move since the *previous* (smaller) bucket, not
+  // cumulatively back to the pivot -- so return_1back_7m (the "6M ago" row
+  // under 1M-back Momentum) is the move from price_7m to price_4m (the 3M
+  // mark), not all the way to the pivot at price_1m. The smallest bucket has
+  // nothing smaller to gap against, so it still measures straight to the
+  // pivot.
+  const backrefReturn = (pivot, ago, baseline) =>
+    `CASE WHEN s.price_${ago}m > 0 THEN ROUND((s.price_${baseline}m - s.price_${ago}m) / s.price_${ago}m * 100, 2) END AS return_${pivot}back_${ago}m`;
   const backrefReturnCols = [
-    backrefReturn(1, 2), backrefReturn(1, 4), backrefReturn(1, 7),
-    backrefReturn(3, 4), backrefReturn(3, 6), backrefReturn(3, 9),
+    backrefReturn(1, 2, 1), backrefReturn(1, 4, 2), backrefReturn(1, 7, 4),
+    backrefReturn(3, 4, 3), backrefReturn(3, 6, 4), backrefReturn(3, 9, 6),
   ].join(",\n    ");
 
-  return `
+  const params = [];
+  let extraFilter = "";
+  if (filters.sector) {
+    extraFilter += " AND i.sector = ?";
+    params.push(filters.sector);
+  }
+  if (filters.industry) {
+    extraFilter += " AND i.industry = ?";
+    params.push(filters.industry);
+  }
+
+  const sql = `
   SELECT
-    id, tradingsymbol, name,
-    current_price, current_ts,
-    ${outerPriceCols},
-    all_time_high, ath_date,
-    market_cap_cr, market_cap_updated_at,
-    ${outerReturnCols},
-    ${backrefOuterCols},
+    i.id, i.tradingsymbol, i.name, i.sector, i.industry,
+    s.current_price, s.current_ts,
+    s.all_time_high, s.ath_date,
+    i.market_cap_cr, i.market_cap_updated_at,
+    ${months.map((m) => `s.price_${m}m AS price_${m}m, s.date_${m}m AS date_${m}m`).join(", ")},
+    ${BACKREF_OFFSETS.map((m) => `s.price_${m}m AS bref_${m}m, s.date_${m}m AS brefdate_${m}m`).join(", ")},
+    ${returnCols},
     ${backrefReturnCols},
-    CASE WHEN all_time_high > 0 THEN ROUND((current_price - all_time_high) / all_time_high * 100, 2) END AS diff_from_ath
-  FROM (
-    SELECT
-      i.id, i.tradingsymbol, i.name, i.market_cap_cr, i.market_cap_updated_at,
-      (SELECT c.close FROM candles c WHERE c.instrument_id = i.id ORDER BY c.ts DESC LIMIT 1) AS current_price,
-      (SELECT c.ts    FROM candles c WHERE c.instrument_id = i.id ORDER BY c.ts DESC LIMIT 1) AS current_ts,${innerCols},${backrefInnerCols}
-      ,(SELECT MAX(c.high) FROM candles c WHERE c.instrument_id = i.id) AS all_time_high,
-      (SELECT c.ts FROM candles c WHERE c.instrument_id = i.id ORDER BY c.high DESC, c.ts DESC LIMIT 1) AS ath_date
-    FROM instruments i
-    WHERE ${EQUITY_FILTER}
-      AND EXISTS (SELECT 1 FROM candles c2 WHERE c2.instrument_id = i.id)
-  ) x
-  ORDER BY tradingsymbol
+    CASE WHEN s.all_time_high > 0 THEN ROUND((s.current_price - s.all_time_high) / s.all_time_high * 100, 2) END AS diff_from_ath
+  FROM instruments i
+  JOIN instrument_price_snapshot s ON s.instrument_id = i.id
+  WHERE ${EQUITY_FILTER}
+    ${extraFilter}
+  ORDER BY i.tradingsymbol
 `;
+  return { sql, params };
+}
+
+// Lightweight aggregate queries for the Sectors browse page -- deliberately
+// avoid the heavy buildStocksQuery (candle subqueries per row) since this
+// page only ever needs distinct sector/industry names and counts, backed by
+// the idx_sector/idx_industry indexes.
+export function buildSectorsQuery() {
+  return `
+    SELECT sector, COUNT(*) AS count
+    FROM instruments i
+    WHERE ${EQUITY_FILTER} AND sector IS NOT NULL
+    GROUP BY sector
+    ORDER BY sector
+  `;
+}
+
+export function buildIndustriesQuery() {
+  return `
+    SELECT industry, COUNT(*) AS count
+    FROM instruments i
+    WHERE ${EQUITY_FILTER} AND sector = ? AND industry IS NOT NULL
+    GROUP BY industry
+    ORDER BY industry
+  `;
 }

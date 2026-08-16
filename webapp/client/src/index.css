@@ -7,6 +7,7 @@
   --text-muted: #6b7280;
   --accent: #2563eb;
   --accent-contrast: #ffffff;
+  --accent-bg: #e8f0fe;
   --positive: #0f9d58;
   --positive-bg: #e6f6ec;
   --negative: #d93025;
@@ -19,23 +20,28 @@
   font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Upstox-terminal inspired: dark navy ground, orange accent used sparingly
+   for active/interactive elements, TradingView-style bright green/red for
+   gains/losses (kept separate from the accent hue -- semantic color, not
+   brand color). */
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1115;
-  --surface: #171a21;
-  --surface-alt: #1d2129;
-  --border: #2a2f3a;
-  --text: #e6e8ec;
-  --text-muted: #8b92a3;
-  --accent: #5b8def;
-  --accent-contrast: #0b1020;
-  --positive: #3ddc84;
-  --positive-bg: rgba(61, 220, 132, 0.12);
-  --negative: #ff6b6b;
-  --negative-bg: rgba(255, 107, 107, 0.12);
-  --header-bg: #1d2129;
-  --row-hover: #1c2230;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --bg: #10141c;
+  --surface: #10141c;
+  --surface-alt: #161b24;
+  --border: #232a35;
+  --text: #e3e8ee;
+  --text-muted: #76828f;
+  --accent: #ff6a1a;
+  --accent-contrast: #10141c;
+  --accent-bg: rgba(255, 106, 26, 0.12);
+  --positive: #17c98d;
+  --positive-bg: rgba(23, 201, 141, 0.1);
+  --negative: #f6465d;
+  --negative-bg: rgba(246, 70, 93, 0.1);
+  --header-bg: #10141c;
+  --row-hover: #161b24;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 * {

@@ -1,0 +1,288 @@
+<title>Stocks + Portfolio — Kite vs Upstox styling</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif; }
+  table { border-collapse: collapse; width: 100%; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* ---- picker chrome ---- */
+  .picker {
+    position: sticky; top: 0; z-index: 60;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: #14151a; border-bottom: 1px solid #26272c;
+  }
+  .picker button {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px;
+    border-radius: 7px; border: 1px solid #33343a; background: #1f2024; color: #9a9ba3; cursor: pointer;
+  }
+  .picker button.on { background: #eee; color: #111; border-color: #eee; }
+  .picker .sep { width: 1px; height: 20px; background: #33343a; margin: 0 4px; }
+  .picker .sub { font: inherit; font-size: 12.5px; padding: 7px 13px; border-radius: 6px; border: 1px solid #33343a; background: transparent; color: #8f9098; cursor: pointer; }
+  .picker .sub.on { background: #2a2b30; color: #e7e7ea; border-color: #2a2b30; }
+  .picker .tag { color: #6b6c73; font-size: 12px; margin-left: auto; }
+
+  .style { display: none; }
+  .style.on { display: block; }
+  .view { display: none; }
+  .view.on { display: block; }
+
+  /* =====================================================================
+     KITE-STYLE (light) — flat, hairline borders, colored text not pills
+  ===================================================================== */
+  .kite {
+    background: #ffffff; color: #1c1e21; min-height: 100vh; padding-bottom: 60px;
+    --blue: #387ed1; --pos: #26a37b; --neg: #eb5b3c; --muted: #8f96a3; --border: #e6e9ec; --alt: #f7f9fb;
+  }
+  .kite .topbar { display: flex; align-items: center; gap: 4px; padding: 14px 24px 0; }
+  .kite .brand { font-size: 17px; font-weight: 700; color: #1c1e21; margin-right: 20px; }
+  .kite .brand span { color: var(--blue); }
+  .kite .tabs { display: flex; gap: 22px; }
+  .kite .tabs button { font: inherit; font-size: 13.5px; font-weight: 600; padding: 0 0 12px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; }
+  .kite .tabs button.on { color: #1c1e21; border-color: var(--blue); }
+  .kite .divider { border-bottom: 1px solid var(--border); margin: 0 0 16px; }
+
+  .kite .stat-strip { display: flex; padding: 4px 24px 18px; gap: 0; }
+  .kite .stat { padding: 0 26px; border-right: 1px solid var(--border); }
+  .kite .stat:first-child { padding-left: 0; }
+  .kite .stat:last-child { border-right: none; }
+  .kite .stat .lbl { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .kite .stat .val { font-size: 18px; font-weight: 700; }
+  .kite .stat .sub { font-size: 12.5px; font-weight: 600; margin-left: 6px; }
+
+  .kite .body { padding: 0 24px; }
+  .kite .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .kite .toolbar input { flex: 0 1 260px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 13px; }
+  .kite .toolbar .count { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+  .kite .chip-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .kite .chip { font-size: 12px; padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); color: var(--muted); background: #fff; }
+  .kite .chip.on { color: var(--blue); border-color: var(--blue); background: #eef4fc; }
+
+  .kite table { font-size: 13px; }
+  .kite thead th { position: sticky; top: 0; background: #fff; text-align: right; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .kite thead th:first-child, .kite thead th:nth-child(2) { text-align: left; }
+  .kite tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .kite tbody tr:hover { background: var(--alt); }
+  .kite .sym { font-weight: 700; color: #1c1e21; }
+  .kite .nm { color: var(--muted); font-size: 11.5px; }
+  .kite .pos { color: var(--pos); font-weight: 600; }
+  .kite .neg { color: var(--neg); font-weight: 600; }
+  .kite .bar-track { display: inline-block; width: 40px; height: 4px; border-radius: 2px; background: #edf0f2; overflow: hidden; margin-left: 8px; vertical-align: middle; }
+  .kite .bar-fill { height: 100%; display: block; }
+
+  .kite .holdings-head { padding: 20px 24px 10px; font-size: 13px; font-weight: 700; color: #1c1e21; }
+
+  /* =====================================================================
+     UPSTOX-STYLE (dark) — terminal navy, orange accent, TV-style pnl colors
+  ===================================================================== */
+  .upstox {
+    background: #10141c; color: #d9e0e7; min-height: 100vh; padding-bottom: 60px;
+    --orange: #ff6a1a; --pos: #17c98d; --neg: #f6465d; --muted: #76828f; --border: #232a35; --alt: #161b24;
+  }
+  .upstox .topbar { display: flex; align-items: center; gap: 4px; padding: 14px 24px 0; }
+  .upstox .brand { font-size: 17px; font-weight: 700; color: #f0f3f6; margin-right: 20px; }
+  .upstox .brand span { color: var(--orange); }
+  .upstox .tabs { display: flex; gap: 22px; }
+  .upstox .tabs button { font: inherit; font-size: 13.5px; font-weight: 600; padding: 0 0 12px; border: none; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; }
+  .upstox .tabs button.on { color: #f0f3f6; border-color: var(--orange); }
+  .upstox .divider { border-bottom: 1px solid var(--border); margin: 0 0 16px; }
+
+  .upstox .stat-strip { display: flex; padding: 4px 24px 18px; gap: 0; }
+  .upstox .stat { padding: 0 26px; border-right: 1px solid var(--border); }
+  .upstox .stat:first-child { padding-left: 0; }
+  .upstox .stat:last-child { border-right: none; }
+  .upstox .stat .lbl { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .upstox .stat .val { font-size: 18px; font-weight: 700; color: #f0f3f6; }
+  .upstox .stat .sub { font-size: 12.5px; font-weight: 600; margin-left: 6px; }
+
+  .upstox .body { padding: 0 24px; }
+  .upstox .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .upstox .toolbar input { flex: 0 1 260px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 13px; background: var(--alt); color: #d9e0e7; }
+  .upstox .toolbar .count { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+  .upstox .chip-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .upstox .chip { font-size: 12px; padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border); color: var(--muted); background: var(--alt); }
+  .upstox .chip.on { color: var(--orange); border-color: var(--orange); background: rgba(255,106,26,.1); }
+
+  .upstox table { font-size: 13px; }
+  .upstox thead th { position: sticky; top: 0; background: #10141c; text-align: right; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .upstox thead th:first-child, .upstox thead th:nth-child(2) { text-align: left; }
+  .upstox tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .upstox tbody tr:hover { background: var(--alt); }
+  .upstox .sym { font-weight: 700; color: #f0f3f6; }
+  .upstox .nm { color: var(--muted); font-size: 11.5px; }
+  .upstox .pos { color: var(--pos); font-weight: 600; }
+  .upstox .neg { color: var(--neg); font-weight: 600; }
+  .upstox .bar-track { display: inline-block; width: 40px; height: 4px; border-radius: 2px; background: #1c232d; overflow: hidden; margin-left: 8px; vertical-align: middle; }
+  .upstox .bar-fill { height: 100%; display: block; }
+
+  .upstox .holdings-head { padding: 20px 24px 10px; font-size: 13px; font-weight: 700; color: #f0f3f6; }
+</style>
+
+<div class="picker">
+  <button class="on" data-style="kite">Kite-style (light)</button>
+  <button data-style="upstox">Upstox-style (dark)</button>
+  <div class="sep"></div>
+  <button class="sub on" data-view="stocks">Stocks</button>
+  <button class="sub" data-view="portfolio">Portfolio</button>
+  <span class="tag">pick a style, flip between Stocks / Portfolio to preview both</span>
+</div>
+
+<!-- ===================== KITE ===================== -->
+<div class="style kite on" id="style-kite">
+  <div class="topbar">
+    <div class="brand">NSE<span>·</span>Screener</div>
+    <div class="tabs">
+      <button class="stocks-tab on">Stocks</button>
+      <button class="portfolio-tab">Portfolio</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="view stocks on">
+    <div class="body">
+      <div class="toolbar">
+        <input placeholder="Search symbol or company name…" />
+        <span class="count">3,002 stocks</span>
+      </div>
+      <div class="chip-row">
+        <span class="chip on">1M</span><span class="chip">2M</span><span class="chip on">3M</span><span class="chip">4M</span><span class="chip">5M</span><span class="chip on">6M</span><span class="chip">9M</span><span class="chip">12M</span>
+      </div>
+      <table>
+        <thead><tr><th>Symbol</th><th>Name</th><th>Mkt Cap</th><th>Price</th><th>1M</th><th>3M</th><th>6M</th><th>Momentum</th></tr></thead>
+        <tbody class="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="view portfolio">
+    <div class="stat-strip">
+      <div class="stat"><span class="lbl">Total Investment</span><span class="val">₹1,27,331.55</span></div>
+      <div class="stat"><span class="lbl">Current Value</span><span class="val">₹1,23,570.22</span></div>
+      <div class="stat"><span class="lbl">Total P&amp;L</span><span class="val neg">−₹4,026.48<span class="sub neg">−3.16%</span></span></div>
+      <div class="stat"><span class="lbl">Day&rsquo;s P&amp;L</span><span class="val neg">−₹98.39<span class="sub neg">−0.08%</span></span></div>
+    </div>
+    <div class="holdings-head">Holdings</div>
+    <div class="body" style="padding-top:0">
+      <table>
+        <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Cur. Value</th><th>P&amp;L</th><th>Day Chg</th></tr></thead>
+        <tbody class="holding-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== UPSTOX ===================== -->
+<div class="style upstox" id="style-upstox">
+  <div class="topbar">
+    <div class="brand">NSE<span>·</span>Screener</div>
+    <div class="tabs">
+      <button class="stocks-tab on">Stocks</button>
+      <button class="portfolio-tab">Portfolio</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="view stocks on">
+    <div class="body">
+      <div class="toolbar">
+        <input placeholder="Search symbol or company name…" />
+        <span class="count">3,002 stocks</span>
+      </div>
+      <div class="chip-row">
+        <span class="chip on">1M</span><span class="chip">2M</span><span class="chip on">3M</span><span class="chip">4M</span><span class="chip">5M</span><span class="chip on">6M</span><span class="chip">9M</span><span class="chip">12M</span>
+      </div>
+      <table>
+        <thead><tr><th>Symbol</th><th>Name</th><th>Mkt Cap</th><th>Price</th><th>1M</th><th>3M</th><th>6M</th><th>Momentum</th></tr></thead>
+        <tbody class="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="view portfolio">
+    <div class="stat-strip">
+      <div class="stat"><span class="lbl">Total Investment</span><span class="val">₹1,27,331.55</span></div>
+      <div class="stat"><span class="lbl">Current Value</span><span class="val">₹1,23,570.22</span></div>
+      <div class="stat"><span class="lbl">Total P&amp;L</span><span class="val neg">−₹4,026.48<span class="sub neg">−3.16%</span></span></div>
+      <div class="stat"><span class="lbl">Day&rsquo;s P&amp;L</span><span class="val neg">−₹98.39<span class="sub neg">−0.08%</span></span></div>
+    </div>
+    <div class="holdings-head">Holdings</div>
+    <div class="body" style="padding-top:0">
+      <table>
+        <thead><tr><th>Symbol</th><th>Qty</th><th>Avg</th><th>LTP</th><th>Cur. Value</th><th>P&amp;L</th><th>Day Chg</th></tr></thead>
+        <tbody class="holding-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const rows = [
+    { sym: "AMAGI",     nm: "Amagi Media Labs",       cap: "₹8,412 Cr",  price: "658.60",  m1: 1.18,  m3: 9.4,  m6: 22.1, mo: 14.6 },
+    { sym: "BALAMINES", nm: "Balaji Amines",          cap: "₹3,180 Cr",  price: "2,243.40", m1: -1.23, m3: 4.2,  m6: 11.3, mo: 6.8  },
+    { sym: "ITBEES",    nm: "Nippon IT Bees ETF",     cap: "₹612 Cr",    price: "34.62",   m1: 0.23,  m3: -1.9, m6: 3.4,  mo: 1.1  },
+    { sym: "LLOYDSME",  nm: "Lloyds Metals & Energy", cap: "₹41,760 Cr", price: "2,015.10", m1: 2.9,   m3: 14.8, m6: 38.5, mo: 21.4 },
+    { sym: "ACMESOLAR", nm: "ACME Solar Holdings",    cap: "₹18,204 Cr", price: "360.70",  m1: -1.62, m3: -6.1, m6: -12.4,mo: -8.9 },
+    { sym: "20MICRONS", nm: "20 Microns",             cap: "₹722 Cr",    price: "201.70",  m1: 0.14,  m3: 13.9, m6: 0.9,  mo: 4.7  },
+    { sym: "AARTIIND",  nm: "Aarti Industries",       cap: "₹17,315 Cr", price: "485.00",  m1: 4.1,   m3: -3.3, m6: 36.4, mo: 18.0 },
+  ];
+  const holdings = [
+    { sym: "ACMESOLAR", qty: 17,   avg: "390.80",   ltp: "360.70",   val: "6,131.90",  pnl: -511.70, day: -1.62 },
+    { sym: "AMAGI",     qty: 18,   avg: "474.60",   ltp: "658.60",   val: "11,854.80", pnl: 3312.00, day: 1.18  },
+    { sym: "BALAMINES", qty: 3,    avg: "1,907.10", ltp: "2,243.40", val: "6,730.20",  pnl: 1008.90, day: -1.23 },
+    { sym: "ITBEES",    qty: 1250, avg: "36.97",    ltp: "34.62",    val: "43,275.00", pnl: -2939.50,day: 0.23  },
+  ];
+  const pct = (v) => (v > 0 ? "+" : "") + v.toFixed(2) + "%";
+  const money = (v) => (v < 0 ? "−" : "") + "₹" + Math.abs(v).toLocaleString("en-IN", {maximumFractionDigits:2});
+  const cls = (v) => (v >= 0 ? "pos" : "neg");
+  const barColor = { kite: { pos: "#26a37b", neg: "#eb5b3c" }, upstox: { pos: "#17c98d", neg: "#f6465d" } };
+
+  function renderRows(styleKey) {
+    const c = barColor[styleKey];
+    document.querySelectorAll("#style-" + styleKey + " .rows").forEach(el => {
+      el.innerHTML = rows.map(r => `
+        <tr>
+          <td class="sym">${r.sym}</td>
+          <td class="nm">${r.nm}</td>
+          <td class="num">${r.cap}</td>
+          <td class="num">₹${r.price}</td>
+          <td class="num ${cls(r.m1)}">${pct(r.m1)}</td>
+          <td class="num ${cls(r.m3)}">${pct(r.m3)}</td>
+          <td class="num ${cls(r.m6)}">${pct(r.m6)}</td>
+          <td class="num">
+            <span class="${cls(r.mo)}">${pct(r.mo)}</span>
+            <span class="bar-track"><span class="bar-fill" style="width:${Math.min(Math.abs(r.mo)*3,100)}%; background:${r.mo>=0?c.pos:c.neg}"></span></span>
+          </td>
+        </tr>`).join("");
+    });
+    document.querySelectorAll("#style-" + styleKey + " .holding-rows").forEach(el => {
+      el.innerHTML = holdings.map(h => `
+        <tr>
+          <td class="sym">${h.sym}</td>
+          <td class="num">${h.qty}</td>
+          <td class="num">₹${h.avg}</td>
+          <td class="num">₹${h.ltp}</td>
+          <td class="num">₹${h.val}</td>
+          <td class="num ${cls(h.pnl)}">${money(h.pnl)}</td>
+          <td class="num ${cls(h.day)}">${pct(h.day)}</td>
+        </tr>`).join("");
+    });
+  }
+  renderRows("kite");
+  renderRows("upstox");
+
+  document.querySelectorAll(".picker button[data-style]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".picker button[data-style]").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      document.querySelectorAll(".style").forEach(s => s.classList.remove("on"));
+      document.getElementById("style-" + btn.dataset.style).classList.add("on");
+    });
+  });
+  document.querySelectorAll(".picker button[data-view]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".picker button[data-view]").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+      document.querySelectorAll(".view." + btn.dataset.view).forEach(v => v.classList.add("on"));
+    });
+  });
+</script>

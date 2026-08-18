@@ -21,6 +21,9 @@ from datetime import date, timedelta
 
 import pymysql
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from backfill_daily_candles import load_env_file as load_env  # noqa: E402
+
 MONTHS = list(range(1, 13))
 
 # ~20 trading days -- see _db.js for the full rationale (a stock that was
@@ -28,18 +31,6 @@ MONTHS = list(range(1, 13))
 # years-stale "N months ago" price with no indication it isn't actually
 # close to the requested date).
 STALENESS_DAYS = 28
-
-
-def load_env(path):
-    env = {}
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, val = line.split("=", 1)
-            env[key.strip()] = val.strip()
-    return env
 
 
 def month_target(today, m):

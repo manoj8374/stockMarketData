@@ -102,7 +102,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100, 200]
 // the whole point of drilling into one sector/industry is to avoid pulling
 // the full ~3000-row, candle-joined dataset just to look at a handful of
 // stocks.
-export default function StockScreener({ fixedSector, fixedIndustry, onBack } = {}) {
+export default function StockScreener({ fixedSector, fixedIndustry, onBack, minMarketCap = 0 } = {}) {
   const [theme, setTheme] = useTheme()
   const [stocks, setStocks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -138,7 +138,7 @@ export default function StockScreener({ fixedSector, fixedIndustry, onBack } = {
   function loadStocks(forceRefresh = false) {
     setLoading(true)
     setError(null)
-    const params = new URLSearchParams({ months: selectedMonths.join(',') })
+    const params = new URLSearchParams({ months: selectedMonths.join(','), minMarketCap: String(minMarketCap) })
     if (forceRefresh) params.set('refresh', '1')
     if (fixedSector) params.set('sector', fixedSector)
     if (fixedIndustry) params.set('industry', fixedIndustry)
@@ -157,7 +157,7 @@ export default function StockScreener({ fixedSector, fixedIndustry, onBack } = {
 
   useEffect(() => {
     loadStocks()
-  }, [selectedMonths, fixedSector, fixedIndustry])
+  }, [selectedMonths, fixedSector, fixedIndustry, minMarketCap])
 
   useEffect(() => {
     localStorage.setItem('selectedMonths', JSON.stringify(selectedMonths))

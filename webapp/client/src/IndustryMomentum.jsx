@@ -14,7 +14,6 @@ const BLEND_FIELDS = [
 const BLEND_KEYS = BLEND_FIELDS.map(([k]) => k)
 const DEFAULT_BLEND = { median: 60, p75: 25, mean: 15 }
 const DEFAULT_PERIOD_WEIGHTS = { 1: 40, 3: 30, 6: 30 }
-const DEFAULT_MIN_MARKET_CAP = 2000
 
 // Same gap semantics as the stock screener's return columns (see
 // buildGapReturnCols in api/_db.js): each period is measured only since the
@@ -27,7 +26,7 @@ function periodDescription(m) {
 const COLUMNS = [
   { key: 'industry', label: 'Industry', type: 'text' },
   { key: 'sector', label: 'Sector', type: 'text' },
-  { key: 'eligible', label: 'Stocks', type: 'int', title: 'Eligible stocks (above the market-cap cutoff)' },
+  { key: 'eligible', label: 'Stocks', type: 'int', title: 'Stocks included in the calculations (respects the small-cap toggle)' },
   { key: 'score', label: 'Momentum Score', type: 'pct', title: 'Weighted blend of the per-period scores' },
   ...PERIODS.map((m) => ({ key: `mean_${m}m`, label: `${m}M Mean`, type: 'pct', period: m })),
   ...PERIODS.map((m) => ({ key: `median_${m}m`, label: `${m}M Median`, type: 'pct', period: m })),
@@ -52,12 +51,6 @@ function loadStoredWeights(storageKey, defaults) {
     // ignore malformed storage
   }
   return { ...defaults }
-}
-
-function loadStoredMinMarketCap() {
-  const raw = localStorage.getItem('industryMinMarketCap')
-  const saved = Number(raw)
-  return raw !== null && raw.trim() !== '' && Number.isFinite(saved) && saved >= 0 ? saved : DEFAULT_MIN_MARKET_CAP
 }
 
 // Raw weight inputs don't have to sum to 100 -- normalize proportionally to
@@ -95,7 +88,10 @@ function pctClass(v) {
   return Number(v) >= 0 ? 'positive' : 'negative'
 }
 
-export default function IndustryMomentum() {
+// minMarketCap comes from the app-wide "hide small caps" toggle (0 = all
+// companies). The API always receives it explicitly, so the calculations
+// here always match what the Stocks and Sectors tabs show.
+export default function IndustryMomentum({ minMarketCap = 0 }) {
   const [theme, setTheme] = useTheme()
   const navigate = useNavigate()
 
@@ -103,8 +99,6 @@ export default function IndustryMomentum() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const [minMarketCap, setMinMarketCap] = useState(loadStoredMinMarketCap)
-  const [minMarketCapInput, setMinMarketCapInput] = useState(() => String(loadStoredMinMarketCap()))
   const [blend, setBlend] = useState(() => loadStoredWeights('industryBlendWeights', DEFAULT_BLEND))
   const [periodWeights, setPeriodWeights] = useState(() =>
     loadStoredWeights('industryPeriodWeights', DEFAULT_PERIOD_WEIGHTS)
@@ -135,16 +129,12 @@ export default function IndustryMomentum() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
-    // A newer request (cutoff changed, or Refresh) supersedes this one --
+    // A newer request (toggle flipped, or Refresh) supersedes this one --
     // don't let a slow older response overwrite it.
     return () => {
       cancelled = true
     }
   }, [minMarketCap, reloadToken])
-
-  useEffect(() => {
-    localStorage.setItem('industryMinMarketCap', String(minMarketCap))
-  }, [minMarketCap])
 
   useEffect(() => {
     localStorage.setItem('industryBlendWeights', JSON.stringify(blend))
@@ -157,13 +147,6 @@ export default function IndustryMomentum() {
   function refresh() {
     bypassCache.current = true
     setReloadToken((t) => t + 1)
-  }
-
-  function commitMinMarketCap() {
-    const n = Number(minMarketCapInput)
-    const next = minMarketCapInput.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : minMarketCap
-    setMinMarketCapInput(String(next))
-    if (next !== minMarketCap) setMinMarketCap(next)
   }
 
   function toggleSort(key) {
@@ -318,25 +301,14 @@ export default function IndustryMomentum() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <label className="weight-input mcap-input">
-          <span className="muted small">Min Market Cap ₹</span>
-          <input
-            type="number"
-            min={0}
-            value={minMarketCapInput}
-            onChange={(e) => setMinMarketCapInput(e.target.value)}
-            onBlur={commitMinMarketCap}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitMinMarketCap()
-            }}
-          />
-          <span className="muted small">Cr</span>
-        </label>
         {data && (
           <span className="muted small count">
-            {sorted.length.toLocaleString()} industries · {data.eligibleStocks.toLocaleString()} eligible stocks
+            {sorted.length.toLocaleString()} industries · {data.eligibleStocks.toLocaleString()} stocks
+            {data.minMarketCap
+              ? ` (market cap ≥ ₹${Number(data.minMarketCap).toLocaleString('en-IN')} Cr)`
+              : ' (all market caps)'}
             {data.excludedIndustries > 0 &&
-              ` · ${data.excludedIndustries} industries hidden (fewer than ${data.minStocks} eligible stocks)`}
+              ` · ${data.excludedIndustries} industries hidden (fewer than ${data.minStocks} stocks)`}
           </span>
         )}
       </div>

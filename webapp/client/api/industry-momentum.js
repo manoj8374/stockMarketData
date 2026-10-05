@@ -1,4 +1,4 @@
-import { getPool, buildIndustryMomentumQuery } from "./_db.js";
+import { getPool, buildIndustryMomentumQuery, parseMinMarketCap } from "./_db.js";
 import { getSession } from "./_auth.js";
 import {
   INDUSTRY_PERIODS,
@@ -13,15 +13,9 @@ import {
 // user can tweak weights without a round-trip.
 //
 // Snapshot data only changes once a day, so a per-instance cache keyed by
-// the market-cap cutoff is plenty.
+// the market-cap floor is plenty.
 const cacheByMinCap = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
-
-function parseMinMarketCap(raw) {
-  if (raw === undefined || raw === null || raw === "") return DEFAULT_MIN_MARKET_CAP_CR;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MIN_MARKET_CAP_CR;
-}
 
 export default async (req, res) => {
   if (!getSession(req)) {
@@ -29,19 +23,23 @@ export default async (req, res) => {
     return;
   }
   try {
-    const minMarketCap = parseMinMarketCap(req.query.minMarketCap);
+    // No param -> the default Rs 2,000 Cr floor; minMarketCap=0 -> all
+    // companies (the app-wide "hide small caps" toggle switched off).
+    const minMarketCap = parseMinMarketCap(req.query.minMarketCap, DEFAULT_MIN_MARKET_CAP_CR);
+    const cacheKey = String(minMarketCap ?? "");
     const now = Date.now();
     const bypass = req.query.refresh === "1";
-    let entry = cacheByMinCap.get(minMarketCap);
+    let entry = cacheByMinCap.get(cacheKey);
 
     if (bypass || !entry || now - entry.fetchedAt >= CACHE_TTL_MS) {
-      const [rows] = await getPool().query(buildIndustryMomentumQuery(INDUSTRY_PERIODS), [minMarketCap]);
+      const { sql, params } = buildIndustryMomentumQuery(INDUSTRY_PERIODS, minMarketCap);
+      const [rows] = await getPool().query(sql, params);
       const { industries, excludedIndustries } = aggregateIndustries(rows, INDUSTRY_PERIODS);
       entry = { data: { eligibleStocks: rows.length, industries, excludedIndustries }, fetchedAt: now };
       // The cutoff is free-form user input, so keep the cache from growing
       // without bound if many different values get tried.
       if (cacheByMinCap.size >= 20) cacheByMinCap.clear();
-      cacheByMinCap.set(minMarketCap, entry);
+      cacheByMinCap.set(cacheKey, entry);
     }
 
     res.setHeader("Cache-Control", "no-store");

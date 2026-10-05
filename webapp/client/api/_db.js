@@ -54,6 +54,27 @@ const EQUITY_FILTER = `
 
 export const DEFAULT_MONTHS = [1, 3, 6];
 
+// Optional market-cap floor (in crores) shared by every stock-listing query,
+// driven by the app-wide "hide small caps" toggle. `raw` is the
+// minMarketCap query param: a positive number applies `market_cap_cr >= n`;
+// 0 means "no floor" (all companies, including ones with no market cap on
+// record); missing/invalid falls back to `fallback` (null = no floor).
+export function parseMinMarketCap(raw, fallback = null) {
+  if (raw === undefined || raw === null || String(raw).trim() === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n > 0 ? n : null;
+}
+
+// Appends the market-cap condition (and its bound param) when a floor is
+// set. Stocks with no market cap on record are excluded by a floor, since
+// they can't be confirmed to clear it.
+function marketCapFilter(minMarketCap, params) {
+  if (minMarketCap === null || minMarketCap === undefined) return "";
+  params.push(minMarketCap);
+  return " AND i.market_cap_cr >= ?";
+}
+
 // Validates/dedupes/sorts a requested list of month offsets (1-12 only).
 export function parseMonths(raw) {
   if (!raw) return [...DEFAULT_MONTHS];
@@ -135,6 +156,7 @@ export function buildStocksQuery(months, filters = {}) {
     extraFilter += " AND i.industry = ?";
     params.push(filters.industry);
   }
+  extraFilter += marketCapFilter(filters.minMarketCap, params);
 
   const sql = `
   SELECT
@@ -160,14 +182,16 @@ export function buildStocksQuery(months, filters = {}) {
 // avoid the heavy buildStocksQuery (candle subqueries per row) since this
 // page only ever needs distinct sector/industry names and counts, backed by
 // the idx_sector/idx_industry indexes.
-export function buildSectorsQuery() {
-  return `
+export function buildSectorsQuery(minMarketCap = null) {
+  const params = [];
+  const sql = `
     SELECT sector, COUNT(*) AS count
     FROM instruments i
-    WHERE ${EQUITY_FILTER} AND sector IS NOT NULL
+    WHERE ${EQUITY_FILTER} AND sector IS NOT NULL${marketCapFilter(minMarketCap, params)}
     GROUP BY sector
     ORDER BY sector
   `;
+  return { sql, params };
 }
 
 // Industry Momentum / Breadth page: one row per eligible stock (above the
@@ -175,7 +199,8 @@ export function buildSectorsQuery() {
 // for the given months. The per-industry mean/median/P75/breadth aggregation
 // happens in JS (industry-momentum.js) -- MySQL 8 has no PERCENTILE_CONT,
 // and at ~1,100 eligible rows the aggregation is trivial in memory anyway.
-export function buildIndustryMomentumQuery(months) {
+export function buildIndustryMomentumQuery(months, minMarketCap = null) {
+  const params = [];
   const sql = `
   SELECT
     i.sector, i.industry,
@@ -183,18 +208,19 @@ export function buildIndustryMomentumQuery(months) {
   FROM instruments i
   JOIN instrument_price_snapshot s ON s.instrument_id = i.id
   WHERE ${EQUITY_FILTER}
-    AND i.industry IS NOT NULL
-    AND i.market_cap_cr > ?
+    AND i.industry IS NOT NULL${marketCapFilter(minMarketCap, params)}
 `;
-  return sql;
+  return { sql, params };
 }
 
-export function buildIndustriesQuery() {
-  return `
+export function buildIndustriesQuery(sector, minMarketCap = null) {
+  const params = [sector];
+  const sql = `
     SELECT industry, COUNT(*) AS count
     FROM instruments i
-    WHERE ${EQUITY_FILTER} AND sector = ? AND industry IS NOT NULL
+    WHERE ${EQUITY_FILTER} AND sector = ? AND industry IS NOT NULL${marketCapFilter(minMarketCap, params)}
     GROUP BY industry
     ORDER BY industry
   `;
+  return { sql, params };
 }

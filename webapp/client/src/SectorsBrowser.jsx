@@ -54,7 +54,7 @@ function industryPath(sector, industry) {
   return `/sectors/${encodeURIComponent(sector)}/${encodeURIComponent(industry)}`
 }
 
-export default function SectorsBrowser() {
+export default function SectorsBrowser({ minMarketCap = 0 }) {
   const { sector, industry } = useParams()
   const navigate = useNavigate()
 
@@ -67,7 +67,7 @@ export default function SectorsBrowser() {
     if (sector) return // only needed at the top-level sectors list
     setLoading(true)
     setError(null)
-    fetch('/api/sectors')
+    fetch(`/api/sectors?minMarketCap=${minMarketCap}`)
       .then((r) => {
         if (!r.ok) throw new Error(`Request failed: ${r.status}`)
         return r.json()
@@ -75,13 +75,13 @@ export default function SectorsBrowser() {
       .then((data) => setSectors(data.sectors))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [sector])
+  }, [sector, minMarketCap])
 
   useEffect(() => {
     if (!sector || industry) return // only needed at the industries-within-a-sector list
     setLoading(true)
     setError(null)
-    fetch(`/api/industries?sector=${encodeURIComponent(sector)}`)
+    fetch(`/api/industries?sector=${encodeURIComponent(sector)}&minMarketCap=${minMarketCap}`)
       .then((r) => {
         if (!r.ok) throw new Error(`Request failed: ${r.status}`)
         return r.json()
@@ -89,13 +89,14 @@ export default function SectorsBrowser() {
       .then((data) => setIndustries(data.industries))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [sector, industry])
+  }, [sector, industry, minMarketCap])
 
   if (sector && industry) {
     return (
       <StockScreener
         fixedSector={sector}
         fixedIndustry={industry}
+        minMarketCap={minMarketCap}
         onBack={() => navigate(sectorPath(sector))}
       />
     )

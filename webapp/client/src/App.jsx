@@ -5,6 +5,7 @@ import Login from './Login'
 import Portfolio from './Portfolio'
 import StockScreener from './StockScreener'
 import SectorsBrowser from './SectorsBrowser'
+import IndustryMomentum from './IndustryMomentum'
 
 function SessionBar({ session, onLogout }) {
   const { pathname } = useLocation()
@@ -18,6 +19,9 @@ function SessionBar({ session, onLogout }) {
         </Link>
         <Link className={`btn ${onSectors ? '' : 'subtle'}`} to="/sectors">
           Sectors
+        </Link>
+        <Link className={`btn ${pathname === '/industries' ? '' : 'subtle'}`} to="/industries">
+          Industries
         </Link>
         {session.role === 'owner' && (
           <Link className={`btn ${pathname === '/portfolio' ? '' : 'subtle'}`} to="/portfolio">
@@ -64,6 +68,7 @@ export default function App() {
         <Route path="/sectors" element={<SectorsBrowser />} />
         <Route path="/sectors/:sector" element={<SectorsBrowser />} />
         <Route path="/sectors/:sector/:industry" element={<SectorsBrowser />} />
+        <Route path="/industries" element={<IndustryMomentum />} />
         <Route
           path="/portfolio"
           element={

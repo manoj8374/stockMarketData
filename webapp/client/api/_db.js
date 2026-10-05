@@ -88,22 +88,27 @@ const BACKREF_OFFSETS = [1, 2, 3, 4, 6, 7, 9];
 // column and can be referenced directly by return_Nm in the same SELECT
 // list (the nesting in earlier versions existed only to work around MySQL
 // not allowing one alias to reference another alias in the same list).
-export function buildStocksQuery(months, filters = {}) {
-  // Each period's return is the *gap* since the next-smaller checked period,
-  // not the cumulative return since today -- e.g. with 1/3/6 checked, 3M
-  // Returns is the move from the 3M-ago price to the 1M-ago price (not to
-  // today), and 6M Returns is the move from 6M-ago to 3M-ago. This avoids
-  // the same recent price action being counted in every larger bucket, so
-  // Momentum Score (a weighted sum of these) reflects genuinely distinct
-  // time segments instead of overlapping ones. The smallest checked month
-  // has no smaller period to gap against, so it stays "vs today" as before.
+// Each period's return is the *gap* since the next-smaller period, not the
+// cumulative return since today -- e.g. with 1/3/6, 3M Returns is the move
+// from the 3M-ago price to the 1M-ago price (not to today), and 6M Returns is
+// the move from 6M-ago to 3M-ago. This avoids the same recent price action
+// being counted in every larger bucket, so Momentum Score (a weighted sum of
+// these) reflects genuinely distinct time segments instead of overlapping
+// ones. The smallest month has no smaller period to gap against, so it stays
+// "vs today". Shared by the stocks and industry-momentum queries so both
+// always agree on what "3M return" means for a given stock.
+function buildGapReturnCols(months) {
   const sortedMonths = [...months].sort((a, b) => a - b);
-  const returnCols = sortedMonths
+  return sortedMonths
     .map((m, idx) => {
       const baseline = idx === 0 ? "s.current_price" : `s.price_${sortedMonths[idx - 1]}m`;
       return `CASE WHEN s.price_${m}m > 0 THEN ROUND((${baseline} - s.price_${m}m) / s.price_${m}m * 100, 2) END AS return_${m}m`;
     })
     .join(",\n    ");
+}
+
+export function buildStocksQuery(months, filters = {}) {
+  const returnCols = buildGapReturnCols(months);
 
   // return_XbackYm = the "Y-months-ago-from-pivot" return used by the
   // X-back momentum score. Same gap logic as the main Returns columns: each
@@ -163,6 +168,25 @@ export function buildSectorsQuery() {
     GROUP BY sector
     ORDER BY sector
   `;
+}
+
+// Industry Momentum / Breadth page: one row per eligible stock (above the
+// market-cap cutoff, tagged with an industry) carrying just its gap returns
+// for the given months. The per-industry mean/median/P75/breadth aggregation
+// happens in JS (industry-momentum.js) -- MySQL 8 has no PERCENTILE_CONT,
+// and at ~1,100 eligible rows the aggregation is trivial in memory anyway.
+export function buildIndustryMomentumQuery(months) {
+  const sql = `
+  SELECT
+    i.sector, i.industry,
+    ${buildGapReturnCols(months)}
+  FROM instruments i
+  JOIN instrument_price_snapshot s ON s.instrument_id = i.id
+  WHERE ${EQUITY_FILTER}
+    AND i.industry IS NOT NULL
+    AND i.market_cap_cr > ?
+`;
+  return sql;
 }
 
 export function buildIndustriesQuery() {

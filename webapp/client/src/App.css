@@ -382,6 +382,19 @@
   border-color: var(--accent);
 }
 
+.mcap-input input {
+  width: 90px;
+}
+
+.industry-help {
+  margin: 0 0 14px;
+}
+
+.breadth-count {
+  font-weight: 400;
+  margin-left: 4px;
+}
+
 .momentum-note {
   margin-left: auto;
 }

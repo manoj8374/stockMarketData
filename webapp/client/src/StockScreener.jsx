@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Tooltip } from 'react-tooltip'
 import 'react-tooltip/dist/react-tooltip.css'
 import './App.css'
+import { useTheme } from './useTheme'
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1)
 const DEFAULT_MONTHS = [1, 3, 6]
@@ -91,21 +92,6 @@ function formatPct(v) {
   const n = Number(v)
   const sign = n > 0 ? '+' : ''
   return `${sign}${n.toFixed(2)}%`
-}
-
-function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme')
-    if (saved) return saved
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
-  }, [theme])
-
-  return [theme, setTheme]
 }
 
 const EMPTY_RANGE = { min: '', max: '' }

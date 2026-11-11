@@ -1,120 +1,81 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import './App.css'
-import { useTheme } from './useTheme'
+import {
+  Breadth,
+  DivergingBar,
+  HeatPct,
+  Icon,
+  MiniBar,
+  Segmented,
+  Skeleton,
+  SortTh,
+  Stat,
+  StatSkeleton,
+  StateBlock,
+  WeightBar,
+  WeightRow,
+} from './ui'
+import { formatPct, industryPath, isNum, loadJSON, saveJSON, tone } from './format'
+import { usePageMeta, useRefreshSignal } from './shell'
+import {
+  BLEND_FIELDS,
+  BLEND_KEYS,
+  BLEND_LABELS,
+  BLEND_STORAGE_KEY,
+  DEFAULT_BLEND,
+  DEFAULT_PERIOD_WEIGHTS,
+  PERIOD_STORAGE_KEY,
+  PERIODS,
+  buildIndustryRows,
+  loadStoredWeights,
+  normalize,
+  periodDescription,
+  weightNote,
+} from './industryScore'
 
-// Must match INDUSTRY_PERIODS in api/_industryStats.js.
-const PERIODS = [1, 3, 6]
-
-const BLEND_FIELDS = [
+const METRICS = [
+  ['score', 'Score'],
   ['median', 'Median'],
-  ['p75', 'P75'],
   ['mean', 'Mean'],
+  ['breadth', 'Breadth'],
 ]
-const BLEND_KEYS = BLEND_FIELDS.map(([k]) => k)
-const DEFAULT_BLEND = { median: 60, p75: 25, mean: 15 }
-const DEFAULT_PERIOD_WEIGHTS = { 1: 40, 3: 30, 6: 30 }
+const METRIC_LABELS = Object.fromEntries(METRICS)
+const DEFAULT_METRICS = ['score', 'median', 'breadth']
+const METRICS_KEY = 'industryMetrics'
 
-// Same gap semantics as the stock screener's return columns (see
-// buildGapReturnCols in api/_db.js): each period is measured only since the
-// next-smaller one, so no stretch of price action is counted twice.
-function periodDescription(m) {
-  const idx = PERIODS.indexOf(m)
-  return idx === 0 ? `Today vs ${m}M ago` : `${PERIODS[idx - 1]}M ago vs ${m}M ago`
-}
-
-const COLUMNS = [
-  { key: 'industry', label: 'Industry', type: 'text' },
-  { key: 'sector', label: 'Sector', type: 'text' },
-  { key: 'eligible', label: 'Stocks', type: 'int', title: 'Stocks included in the calculations (respects the small-cap toggle)' },
-  { key: 'score', label: 'Momentum Score', type: 'pct', title: 'Weighted blend of the per-period scores' },
-  ...PERIODS.map((m) => ({ key: `mean_${m}m`, label: `${m}M Mean`, type: 'pct', period: m })),
-  ...PERIODS.map((m) => ({ key: `median_${m}m`, label: `${m}M Median`, type: 'pct', period: m })),
-  ...PERIODS.map((m) => ({ key: `score_${m}m`, label: `${m}M Score`, type: 'score', period: m })),
-  ...PERIODS.map((m) => ({ key: `breadth_${m}m`, label: `${m}M Breadth`, type: 'breadth', period: m })),
-]
-
-function loadStoredWeights(storageKey, defaults) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey))
-    if (saved && typeof saved === 'object') {
-      const out = {}
-      for (const k of Object.keys(defaults)) {
-        const v = saved[k]
-        const usable =
-          (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) && Number.isFinite(Number(v))
-        out[k] = usable ? v : defaults[k]
-      }
-      return out
-    }
-  } catch {
-    // ignore malformed storage
+function loadMetrics() {
+  const saved = loadJSON(METRICS_KEY, null)
+  if (Array.isArray(saved)) {
+    const valid = METRICS.map(([k]) => k).filter((k) => saved.includes(k))
+    if (valid.length) return valid
   }
-  return { ...defaults }
-}
-
-// Raw weight inputs don't have to sum to 100 -- normalize proportionally to
-// fractions (same "auto-normalize" behavior as the stock screener's weights).
-// Negative inputs count as 0. Returns null if nothing has any weight.
-function normalize(raw, keys) {
-  const vals = {}
-  let sum = 0
-  for (const k of keys) {
-    vals[k] = Math.max(0, Number(raw[k]) || 0)
-    sum += vals[k]
-  }
-  if (sum <= 0) return null
-  const out = {}
-  for (const k of keys) out[k] = vals[k] / sum
-  return out
-}
-
-function weightNote(raw, keys, normalized) {
-  const sum = keys.reduce((acc, k) => acc + Math.max(0, Number(raw[k]) || 0), 0)
-  if (!normalized) return 'All weights are 0 — scores unavailable'
-  if (sum === 100) return 'Sums to 100%'
-  return `Sums to ${sum.toFixed(0)}% — auto-normalized to ` + keys.map((k) => `${(normalized[k] * 100).toFixed(0)}%`).join('/')
-}
-
-function formatPct(v) {
-  if (v === null || v === undefined) return '—'
-  const n = Number(v)
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(2)}%`
-}
-
-function pctClass(v) {
-  if (v === null || v === undefined) return ''
-  return Number(v) >= 0 ? 'positive' : 'negative'
+  return [...DEFAULT_METRICS]
 }
 
 // minMarketCap comes from the app-wide "hide small caps" toggle (0 = all
 // companies). The API always receives it explicitly, so the calculations
-// here always match what the Stocks and Sectors tabs show.
+// here always match what the Stocks and Sectors pages show.
 export default function IndustryMomentum({ minMarketCap = 0 }) {
-  const [theme, setTheme] = useTheme()
   const navigate = useNavigate()
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [reload, setReload] = useState({ token: 0, bypass: false })
 
-  const [blend, setBlend] = useState(() => loadStoredWeights('industryBlendWeights', DEFAULT_BLEND))
-  const [periodWeights, setPeriodWeights] = useState(() =>
-    loadStoredWeights('industryPeriodWeights', DEFAULT_PERIOD_WEIGHTS)
-  )
+  const [blend, setBlend] = useState(() => loadStoredWeights(BLEND_STORAGE_KEY, DEFAULT_BLEND))
+  const [periodWeights, setPeriodWeights] = useState(() => loadStoredWeights(PERIOD_STORAGE_KEY, DEFAULT_PERIOD_WEIGHTS))
+  const [metrics, setMetrics] = useState(loadMetrics)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState({ key: 'score', direction: 'desc' })
-  const [reloadToken, setReloadToken] = useState(0)
-  const bypassCache = useRef(false)
+  const [scoringOpen, setScoringOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
     const params = new URLSearchParams({ minMarketCap: String(minMarketCap) })
-    if (bypassCache.current) params.set('refresh', '1')
-    bypassCache.current = false
+    if (reload.bypass) params.set('refresh', '1')
     fetch(`/api/industry-momentum?${params.toString()}`)
       .then((r) => {
         if (!r.ok) throw new Error(`Request failed: ${r.status}`)
@@ -134,71 +95,51 @@ export default function IndustryMomentum({ minMarketCap = 0 }) {
     return () => {
       cancelled = true
     }
-  }, [minMarketCap, reloadToken])
+  }, [minMarketCap, reload])
+
+  const refresh = () => setReload((r) => ({ token: r.token + 1, bypass: true }))
+  useRefreshSignal(refresh)
+  usePageMeta(data?.generatedAt, loading)
 
   useEffect(() => {
-    localStorage.setItem('industryBlendWeights', JSON.stringify(blend))
+    saveJSON(BLEND_STORAGE_KEY, blend)
   }, [blend])
 
   useEffect(() => {
-    localStorage.setItem('industryPeriodWeights', JSON.stringify(periodWeights))
+    saveJSON(PERIOD_STORAGE_KEY, periodWeights)
   }, [periodWeights])
 
-  function refresh() {
-    bypassCache.current = true
-    setReloadToken((t) => t + 1)
-  }
+  useEffect(() => {
+    saveJSON(METRICS_KEY, metrics)
+  }, [metrics])
 
   function toggleSort(key) {
     setSort((prev) => {
-      if (prev.key !== key) return { key, direction: 'desc' }
+      if (prev.key !== key) return { key, direction: key === 'industry' ? 'asc' : 'desc' }
       return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
     })
   }
 
+  function toggleMetric(key) {
+    setMetrics((prev) => {
+      if (prev.includes(key)) return prev.length === 1 ? prev : prev.filter((k) => k !== key)
+      return METRICS.map(([k]) => k).filter((k) => k === key || prev.includes(k))
+    })
+  }
+
+  // A hidden metric column can't stay the sort key.
+  useEffect(() => {
+    const metric = sort.key.split('_')[0]
+    if (sort.key.includes('_') && !metrics.includes(metric)) setSort({ key: 'score', direction: 'desc' })
+  }, [metrics, sort.key])
+
   const normalizedBlend = useMemo(() => normalize(blend, BLEND_KEYS), [blend])
   const normalizedPeriods = useMemo(() => normalize(periodWeights, PERIODS), [periodWeights])
 
-  // Flatten each industry's per-period stats into sortable row fields, and
-  // compute the weighted scores:
-  //   period score = blend of median / P75 / mean for that period
-  //   momentum score = weighted blend of the period scores
-  // A period with too few stocks to have stats makes the overall score
-  // unavailable (rather than silently re-weighting the remaining periods),
-  // unless that period's weight is 0.
-  const rows = useMemo(() => {
-    if (!data) return []
-    return data.industries.map((ind) => {
-      const row = { sector: ind.sector, industry: ind.industry, eligible: ind.eligible, stats: ind.periods }
-      for (const m of PERIODS) {
-        const st = ind.periods[m]
-        row[`mean_${m}m`] = st.mean
-        row[`median_${m}m`] = st.median
-        row[`breadth_${m}m`] = st.breadth
-        row[`score_${m}m`] =
-          normalizedBlend && st.median !== null
-            ? normalizedBlend.median * st.median + normalizedBlend.p75 * st.p75 + normalizedBlend.mean * st.mean
-            : null
-      }
-      let score = null
-      if (normalizedPeriods) {
-        let acc = 0
-        let complete = true
-        for (const m of PERIODS) {
-          if (normalizedPeriods[m] === 0) continue
-          const ps = row[`score_${m}m`]
-          if (ps === null) {
-            complete = false
-            break
-          }
-          acc += normalizedPeriods[m] * ps
-        }
-        score = complete ? acc : null
-      }
-      row.score = score
-      return row
-    })
-  }, [data, normalizedBlend, normalizedPeriods])
+  const rows = useMemo(
+    () => (data ? buildIndustryRows(data.industries, normalizedBlend, normalizedPeriods) : []),
+    [data, normalizedBlend, normalizedPeriods]
+  )
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -209,8 +150,7 @@ export default function IndustryMomentum({ minMarketCap = 0 }) {
   const sorted = useMemo(() => {
     const arr = [...filtered]
     const { key, direction } = sort
-    const column = COLUMNS.find((c) => c.key === key)
-    const isText = column && column.type === 'text'
+    const isText = key === 'industry'
     arr.sort((a, b) => {
       const av = a[key]
       const bv = b[key]
@@ -222,197 +162,404 @@ export default function IndustryMomentum({ minMarketCap = 0 }) {
     return arr
   }, [filtered, sort])
 
-  function renderCell(row, col) {
-    const val = row[col.key]
-    if (col.key === 'industry') return <td key={col.key} className="symbol-cell">{val}</td>
-    if (col.type === 'text') return <td key={col.key} className="muted">{val || '—'}</td>
-    if (col.type === 'int') return <td key={col.key} className="num">{val}</td>
-    if (col.type === 'breadth') {
-      const st = row.stats[col.period]
-      if (val === null) {
-        return (
-          <td key={col.key} className="num muted" title={`Only ${st.count} stock(s) with a ${col.period}M return`}>
-            —
-          </td>
-        )
+  const scored = useMemo(() => rows.filter((r) => isNum(r.score)).sort((a, b) => b.score - a.score), [rows])
+  const maxAbsScore = Math.max(0.01, ...scored.map((r) => Math.abs(r.score)))
+  const leadCount = Math.min(5, Math.ceil(scored.length / 2))
+  const positiveCount = scored.filter((r) => r.score > 0).length
+  const breadth1 = useMemo(() => {
+    let positive = 0
+    let count = 0
+    for (const r of rows) {
+      const st = r.stats[1]
+      if (isNum(st.positive)) {
+        positive += st.positive
+        count += st.count
       }
-      return (
-        <td
-          key={col.key}
-          className={`num pct ${val >= 50 ? 'positive' : 'negative'}`}
-          title={`${st.positive} of ${st.count} stocks had a positive ${col.period}M return`}
-        >
-          {Number(val).toFixed(0)}% <span className="muted small breadth-count">{st.positive}/{st.count}</span>
-        </td>
-      )
     }
-    if (col.type === 'score') {
-      const st = row.stats[col.period]
-      const title =
-        st.median === null
-          ? `Only ${st.count} stock(s) with a ${col.period}M return`
-          : `Median ${formatPct(st.median)} · P75 ${formatPct(st.p75)} · Mean ${formatPct(st.mean)} (${st.count} stocks)`
-      return (
-        <td key={col.key} className={`num pct ${pctClass(val)}`} title={title}>
-          {formatPct(val)}
-        </td>
-      )
-    }
-    if (col.period) {
-      const st = row.stats[col.period]
-      return (
-        <td key={col.key} className={`num pct ${pctClass(val)}`} title={`${st.count} stocks with a ${col.period}M return`}>
-          {formatPct(val)}
-        </td>
-      )
-    }
-    return <td key={col.key} className={`num pct ${pctClass(val)}`}>{formatPct(val)}</td>
+    return count ? { share: positive / count, positive, count } : null
+  }, [rows])
+
+  const goToIndustry = (r) => {
+    if (r.sector) navigate(industryPath(r.sector, r.industry))
   }
 
-  return (
-    <div className="app">
-      <header className="topbar">
-        <div className="title-block">
-          <h1>Industry Momentum &amp; Breadth</h1>
-          {data && (
-            <span className="muted small">Data as of {new Date(data.generatedAt).toLocaleString()}</span>
-          )}
-        </div>
-        <div className="topbar-actions">
-          <button className="btn" onClick={refresh} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-          <button
-            className="btn icon-btn"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle theme"
-            title="Toggle light / dark mode"
-          >
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-          </button>
-        </div>
-      </header>
+  function renderMetricCell(row, m, metric, first) {
+    const st = row.stats[m]
+    const cls = `num${first ? ' gstart' : ''}`
+    const key = `${metric}_${m}`
+    if (metric === 'breadth') {
+      return (
+        <td
+          key={key}
+          className={cls}
+          title={
+            st.breadth === null
+              ? `Only ${st.count} stock(s) with a ${m}M return`
+              : `${st.positive} of ${st.count} stocks had a positive ${m}M return`
+          }
+        >
+          <Breadth value={st.breadth} positive={st.positive} count={st.count} />
+        </td>
+      )
+    }
+    if (metric === 'score') {
+      const title =
+        st.median === null
+          ? `Only ${st.count} stock(s) with a ${m}M return`
+          : `Median ${formatPct(st.median)} · P75 ${formatPct(st.p75)} · Mean ${formatPct(st.mean)} (${st.count} stocks)`
+      return (
+        <td key={key} className={cls} title={title}>
+          <HeatPct value={row[`score_${m}m`]} />
+        </td>
+      )
+    }
+    const val = row[`${metric}_${m}m`]
+    return (
+      <td key={key} className={cls} title={`${st.count} stocks with a ${m}M return`}>
+        <span className={`tone ${tone(val)}`}>{formatPct(val)}</span>
+      </td>
+    )
+  }
 
-      <div className="controls">
-        <input
-          className="search"
-          type="text"
-          placeholder="Search industry or sector…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {data && (
-          <span className="muted small count">
-            {sorted.length.toLocaleString()} industries · {data.eligibleStocks.toLocaleString()} stocks
-            {data.minMarketCap
-              ? ` (market cap ≥ ₹${Number(data.minMarketCap).toLocaleString('en-IN')} Cr)`
-              : ' (all market caps)'}
-            {data.excludedIndustries > 0 &&
-              ` · ${data.excludedIndustries} industries hidden (fewer than ${data.minStocks} stocks)`}
-          </span>
+  const leaderRow = (r, rank) => (
+    <button type="button" className="lead-row" key={`${r.sector}|${r.industry}`} onClick={() => goToIndustry(r)}>
+      <span className="rk">{rank}</span>
+      <span className="nm2">
+        <b>{r.industry}</b>
+        <span>{r.sector}</span>
+      </span>
+      <span className={`hbar ${tone(r.score)}`} aria-hidden="true">
+        <i style={{ width: `${(Math.abs(r.score) / maxAbsScore) * 100}%` }} />
+      </span>
+      <span className={`num tone ${tone(r.score)}`}>{formatPct(r.score, 1)}</span>
+    </button>
+  )
+
+  const showSkeleton = loading && !data
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <h1>Industry momentum</h1>
+        <p className="sub">
+          Which industries are leading, and how many of their stocks are taking part. Click any industry to see its stocks.
+        </p>
+      </div>
+
+      <div className="stat-strip">
+        {showSkeleton || !data ? (
+          <StatSkeleton />
+        ) : (
+          <>
+            <Stat
+              label="Industries ranked"
+              value={rows.length.toLocaleString('en-IN')}
+              sub={`${data.excludedIndustries} hidden · under ${data.minStocks} stocks`}
+            />
+            <Stat
+              label="Stocks covered"
+              value={data.eligibleStocks.toLocaleString('en-IN')}
+              sub={data.minMarketCap ? `market cap ≥ ₹${Number(data.minMarketCap).toLocaleString('en-IN')} Cr` : 'all market caps'}
+            />
+            <Stat
+              label="Positive score"
+              value={
+                <span className={`tone ${positiveCount * 2 >= scored.length ? 'up' : 'down'}`}>{positiveCount}</span>
+              }
+              sub={
+                <>
+                  <MiniBar
+                    fraction={scored.length ? positiveCount / scored.length : 0}
+                    toneClass={positiveCount * 2 >= scored.length ? 'up' : 'down'}
+                  />
+                  of {scored.length} scored industries
+                </>
+              }
+            />
+            <Stat
+              label="Breadth · 1M"
+              value={
+                breadth1 ? (
+                  <span className={`tone ${breadth1.share >= 0.5 ? 'up' : 'down'}`}>{Math.round(breadth1.share * 100)}%</span>
+                ) : (
+                  '—'
+                )
+              }
+              sub={breadth1 ? `${breadth1.positive} of ${breadth1.count} stocks rose this month` : 'not enough data'}
+            />
+          </>
         )}
       </div>
 
-      <div className="momentum-panel">
-        <span className="filter-label">Period Score Blend</span>
-        {BLEND_FIELDS.map(([k, label]) => (
-          <label className="weight-input" key={k}>
-            <span className="muted small">{label}</span>
-            <input
-              type="number"
-              min={0}
-              value={blend[k]}
-              onChange={(e) => setBlend((prev) => ({ ...prev, [k]: e.target.value }))}
-            />
-            <span className="muted small">%</span>
-          </label>
-        ))}
-        <span className="muted small momentum-note">{weightNote(blend, BLEND_KEYS, normalizedBlend)}</span>
-        <button className="btn subtle" onClick={() => setBlend({ ...DEFAULT_BLEND })}>
-          Reset
-        </button>
-      </div>
-
-      <div className="momentum-panel">
-        <span className="filter-label">Momentum Weights</span>
-        {PERIODS.map((m) => (
-          <label className="weight-input" key={m}>
-            <span className="muted small">{m}M</span>
-            <input
-              type="number"
-              min={0}
-              value={periodWeights[m]}
-              onChange={(e) => setPeriodWeights((prev) => ({ ...prev, [m]: e.target.value }))}
-            />
-            <span className="muted small">%</span>
-          </label>
-        ))}
-        <span className="muted small momentum-note">{weightNote(periodWeights, PERIODS, normalizedPeriods)}</span>
-        <button className="btn subtle" onClick={() => setPeriodWeights({ ...DEFAULT_PERIOD_WEIGHTS })}>
-          Reset
-        </button>
-      </div>
-
-      <p className="muted small industry-help">
-        Returns are measured between periods ({PERIODS.map((m) => `${m}M: ${periodDescription(m).toLowerCase()}`).join(' · ')}).
-        Stocks without a return for a period are left out of that period. Breadth is the share of stocks with a
-        positive return. It is shown separately and is not part of the Momentum Score. Click an industry to see its
-        stocks.
-      </p>
-
-      {error && <div className="banner error">Failed to load data: {error}</div>}
-
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              {COLUMNS.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => toggleSort(col.key)}
-                  title={col.title || (col.period ? periodDescription(col.period) : undefined)}
-                >
-                  <span className="th-inner">
-                    {col.label}
-                    {sort.key === col.key && (
-                      <span className="sort-arrow">{sort.direction === 'asc' ? '▲' : '▼'}</span>
-                    )}
-                  </span>
-                </th>
+      {showSkeleton ? (
+        <div className="lead-grid" aria-hidden="true">
+          {['Leading', 'Lagging'].map((t) => (
+            <section className="card lead-card" key={t}>
+              <header>
+                <h3>{t}</h3>
+              </header>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div className="lead-row" key={i}>
+                  <Skeleton width={12} />
+                  <Skeleton width="70%" />
+                  <Skeleton />
+                  <Skeleton />
+                </div>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && !data ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="empty-state">Loading…</td>
-              </tr>
-            ) : sorted.length === 0 ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="empty-state">
-                  {data ? 'No industries match.' : 'No data.'}
-                </td>
-              </tr>
-            ) : (
-              sorted.map((row) => (
-                <tr
-                  key={`${row.sector}|${row.industry}`}
-                  className={row.sector ? 'clickable-row' : undefined}
-                  title={row.sector ? 'Open the stocks in this industry' : undefined}
-                  onClick={() => {
-                    // Same URL shape as the Sectors browse page's drill-down
-                    // (encoded so names containing "/" stay one path segment).
-                    if (!row.sector) return
-                    navigate(`/sectors/${encodeURIComponent(row.sector)}/${encodeURIComponent(row.industry)}`)
-                  }}
-                >
-                  {COLUMNS.map((col) => renderCell(row, col))}
-                </tr>
+            </section>
+          ))}
+        </div>
+      ) : (
+        scored.length > 0 && (
+          <div className="lead-grid">
+            <section className="card lead-card">
+              <header>
+                <h3>Leading</h3>
+                <span className="muted small">Top {leadCount} by score</span>
+              </header>
+              {scored.slice(0, leadCount).map((r, i) => leaderRow(r, i + 1))}
+            </section>
+            <section className="card lead-card">
+              <header>
+                <h3>Lagging</h3>
+                <span className="muted small">Bottom {leadCount} by score</span>
+              </header>
+              {scored
+                .slice(-leadCount)
+                .reverse()
+                .map((r, i) => leaderRow(r, scored.length - i))}
+            </section>
+          </div>
+        )
+      )}
+
+      <section className="card">
+        <button
+          type="button"
+          className="sc-head"
+          aria-expanded={scoringOpen}
+          aria-controls="industry-scoring"
+          onClick={() => setScoringOpen((o) => !o)}
+        >
+          <span className="eyebrow">Industry score</span>
+          <span className="formula">
+            {normalizedPeriods ? (
+              PERIODS.map((m, i) => (
+                <Fragment key={m}>
+                  {i > 0 && <span className="f-op">+</span>}
+                  <span>
+                    <b>{Math.round(normalizedPeriods[m] * 100)}%</b> × {m}M
+                  </span>
+                </Fragment>
               ))
+            ) : (
+              <span className="muted">All period weights are 0, so no scores</span>
             )}
-          </tbody>
-        </table>
+            <span className="f-sub">
+              {normalizedBlend
+                ? `each period = ${BLEND_KEYS.map((k) => `${Math.round(normalizedBlend[k] * 100)}% ${BLEND_LABELS[k].toLowerCase()}`).join(' + ')} of its stocks' returns`
+                : 'period blend weights are all 0'}
+            </span>
+          </span>
+          <span className="sc-edit">
+            {scoringOpen ? 'Done' : 'Adjust'}
+            <Icon name="chevronDown" />
+          </span>
+        </button>
+        {scoringOpen && (
+          <div className="sc-body even" id="industry-scoring">
+            <div>
+              <div className="lbl">
+                Period score blend <span className="muted">{weightNote(blend, BLEND_KEYS, normalizedBlend)}</span>
+              </div>
+              <WeightBar items={normalizedBlend ? BLEND_FIELDS.map(([k, l]) => [l, normalizedBlend[k]]) : null} />
+              {BLEND_FIELDS.map(([k, l]) => (
+                <WeightRow key={k} id={`ind-b-${k}`} label={l} value={blend[k]} onChange={(v) => setBlend((p) => ({ ...p, [k]: v }))} />
+              ))}
+              <div className="sc-actions">
+                <span className="muted small">How each period's score is built from its stocks' returns.</span>
+                <button type="button" className="btn ghost sm" onClick={() => setBlend({ ...DEFAULT_BLEND })}>
+                  Reset to 60 / 25 / 15
+                </button>
+              </div>
+            </div>
+            <div>
+              <div className="lbl">
+                Period weights <span className="muted">{weightNote(periodWeights, PERIODS, normalizedPeriods)}</span>
+              </div>
+              <WeightBar items={normalizedPeriods ? PERIODS.map((m) => [`${m}M`, normalizedPeriods[m]]) : null} />
+              {PERIODS.map((m) => (
+                <WeightRow
+                  key={m}
+                  id={`ind-p-${m}`}
+                  label={`${m}M`}
+                  value={periodWeights[m]}
+                  onChange={(v) => setPeriodWeights((p) => ({ ...p, [m]: v }))}
+                />
+              ))}
+              <div className="sc-actions">
+                <span className="muted small">Breadth is shown but never part of the score.</span>
+                <button type="button" className="btn ghost sm" onClick={() => setPeriodWeights({ ...DEFAULT_PERIOD_WEIGHTS })}>
+                  Reset to 40 / 30 / 30
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="toolbar">
+        <div className="search">
+          <Icon name="search" />
+          <input
+            type="search"
+            placeholder="Search industry or sector"
+            aria-label="Search industries"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <span className="spacer" />
+        <span className="muted small">Per period, show</span>
+        <Segmented label="Metrics per period" options={METRICS} value={metrics} onChange={toggleMetric} />
       </div>
+
+      {error && data && (
+        <div className="banner error" role="alert">
+          <Icon name="alert" />
+          Couldn't refresh the data ({error}). Showing the last data that loaded.
+        </div>
+      )}
+
+      <section className="card table-card">
+        {error && !data ? (
+          <StateBlock
+            kind="error"
+            title="Couldn't load industry momentum"
+            actions={
+              <button type="button" className="btn primary" onClick={refresh}>
+                <Icon name="refresh" />
+                Try again
+              </button>
+            }
+          >
+            The server returned an error ({error}). Your weights are kept.
+          </StateBlock>
+        ) : showSkeleton ? (
+          <div className="skeleton-list" aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Skeleton key={i} width={`${92 - i * 4}%`} />
+            ))}
+          </div>
+        ) : sorted.length === 0 ? (
+          <StateBlock
+            title="No industries match"
+            actions={
+              search && (
+                <button type="button" className="btn" onClick={() => setSearch('')}>
+                  Clear search
+                </button>
+              )
+            }
+          >
+            {search
+              ? `Nothing matches “${search}”. Try a sector name or a shorter word.`
+              : `No industry has ${data?.minStocks ?? 3} or more stocks under the current market-cap setting.`}
+          </StateBlock>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <SortTh colKey="industry" label="Industry" sort={sort} onSort={toggleSort} rowSpan={2} className="sticky" />
+                  <SortTh
+                    colKey="eligible"
+                    label="Stocks"
+                    sort={sort}
+                    onSort={toggleSort}
+                    rowSpan={2}
+                    className="num"
+                    title="Stocks included in the calculations (respects the market-cap toggle)"
+                  />
+                  <SortTh
+                    colKey="score"
+                    label="Industry score"
+                    sort={sort}
+                    onSort={toggleSort}
+                    rowSpan={2}
+                    className="num"
+                    title="Weighted blend of the period scores"
+                  />
+                  {PERIODS.map((m) => (
+                    <th key={m} colSpan={metrics.length} className="th-group">
+                      {m}M<span className="th-group-sub">{periodDescription(m).toLowerCase()}</span>
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {PERIODS.map((m) =>
+                    metrics.map((metric, i) => (
+                      <SortTh
+                        key={`${metric}_${m}m`}
+                        colKey={`${metric}_${m}m`}
+                        label={METRIC_LABELS[metric]}
+                        sort={sort}
+                        onSort={toggleSort}
+                        className={`num${i === 0 ? ' gstart' : ''}`}
+                        title={`${METRIC_LABELS[metric]}, ${periodDescription(m).toLowerCase()}`}
+                      />
+                    ))
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((row) => (
+                  <tr
+                    key={`${row.sector}|${row.industry}`}
+                    className={row.sector ? 'click' : undefined}
+                    tabIndex={row.sector ? 0 : undefined}
+                    title={row.sector ? `Open the stocks in ${row.industry}` : undefined}
+                    onClick={() => goToIndustry(row)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') goToIndustry(row)
+                    }}
+                  >
+                    <td className="sticky">
+                      <div className="ind-cell">
+                        <b>{row.industry}</b>
+                        <span>{row.sector || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="num">{row.eligible}</td>
+                    <td className="num">
+                      {isNum(row.score) ? (
+                        <span className={`score ${tone(row.score)}`}>
+                          <DivergingBar value={row.score} max={maxAbsScore} />
+                          <b className="tone">{formatPct(row.score)}</b>
+                        </span>
+                      ) : (
+                        <span className="muted" title="A weighted period has too few stocks with returns">
+                          —
+                        </span>
+                      )}
+                    </td>
+                    {PERIODS.map((m) => metrics.map((metric, i) => renderMetricCell(row, m, metric, i === 0)))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {data && (
+          <p className="tbl-foot">
+            Returns don't overlap: {PERIODS.map((m) => `${m}M is ${periodDescription(m).toLowerCase()}`).join(', ')}. Stocks
+            without a return for a period are left out of that period. Breadth is the share of stocks with a positive
+            return; it is shown next to the score but is not part of it.
+            {data.excludedIndustries > 0 &&
+              ` ${data.excludedIndustries} ${data.excludedIndustries === 1 ? 'industry is' : 'industries are'} hidden because ${data.excludedIndustries === 1 ? 'it has' : 'they have'} fewer than ${data.minStocks} stocks.`}
+          </p>
+        )}
+      </section>
     </div>
   )
 }

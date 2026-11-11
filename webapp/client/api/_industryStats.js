@@ -45,6 +45,29 @@ export function periodStats(returns) {
   };
 }
 
+// One-month summary per group, for the Sectors browse page. rows carry
+// `return_1m` plus the grouping column (`key` = "sector" or "industry");
+// rows with no value for the grouping column are skipped. Same rules as
+// periodStats, so a group with fewer than MIN_STOCKS usable returns gets
+// nulls rather than a misleading one- or two-stock "median".
+export const EMPTY_GROUP_STATS = { median_1m: null, breadth_1m: null, positive_1m: null, with_return_1m: 0 };
+
+export function summarizeOneMonth(rows, key) {
+  const groups = new Map();
+  for (const r of rows) {
+    const name = r[key];
+    if (name === null || name === undefined) continue;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(r.return_1m);
+  }
+  const out = new Map();
+  for (const [name, returns] of groups) {
+    const st = periodStats(returns);
+    out.set(name, { median_1m: st.median, breadth_1m: st.breadth, positive_1m: st.positive, with_return_1m: st.count });
+  }
+  return out;
+}
+
 // rows: [{ sector, industry, return_1m, return_3m, ... }] -- already limited
 // to eligible stocks (market-cap cutoff applied in SQL). Grouped by
 // (sector, industry) rather than industry alone so an industry name reused

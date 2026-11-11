@@ -1,10 +1,11 @@
-import { getPool, buildSectorsQuery, parseMinMarketCap } from "./_db.js";
+import { getPool, buildSectorsQuery, buildOneMonthReturnsQuery, parseMinMarketCap } from "./_db.js";
 import { getSession } from "./_auth.js";
+import { summarizeOneMonth, EMPTY_GROUP_STATS } from "./_industryStats.js";
 
-// Tiny, index-backed GROUP BY -- no candle joins, so this stays fast
-// regardless of how big the stocks table gets. Result barely changes
-// between requests, so a short in-memory cache (keyed by the market-cap
-// floor) is enough.
+// Counts come from a tiny, index-backed GROUP BY. The 1M median / breadth per
+// sector come from one flat snapshot read (no candle joins) aggregated in JS.
+// Both barely change between requests, so a short in-memory cache (keyed by
+// the market-cap floor) is enough.
 const cacheByMinCap = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
@@ -19,9 +20,16 @@ export default async (req, res) => {
     const now = Date.now();
     let entry = cacheByMinCap.get(cacheKey);
     if (!entry || now - entry.fetchedAt >= CACHE_TTL_MS) {
-      const { sql, params } = buildSectorsQuery(minMarketCap);
-      const [rows] = await getPool().query(sql, params);
-      entry = { data: rows, fetchedAt: now };
+      const pool = getPool();
+      const counts = buildSectorsQuery(minMarketCap);
+      const returns = buildOneMonthReturnsQuery(minMarketCap);
+      const [[rows], [returnRows]] = await Promise.all([
+        pool.query(counts.sql, counts.params),
+        pool.query(returns.sql, returns.params),
+      ]);
+      const stats = summarizeOneMonth(returnRows, "sector");
+      const data = rows.map((r) => ({ ...r, ...(stats.get(r.sector) || EMPTY_GROUP_STATS) }));
+      entry = { data, fetchedAt: now };
       cacheByMinCap.set(cacheKey, entry);
     }
     res.setHeader("Cache-Control", "no-store");

@@ -1,47 +1,108 @@
+/* Design tokens. Dark-first trading-terminal palette with the orange accent
+   used sparingly for active/interactive elements; green/red stay semantic
+   (gains/losses), separate from the accent. The light theme mirrors every
+   token. useTheme always sets data-theme, the media query only covers the
+   moment before it runs. */
 :root {
-  --bg: #f5f6f8;
-  --surface: #ffffff;
-  --surface-alt: #eef1f5;
-  --border: #dfe3e8;
-  --text: #1a1d23;
-  --text-muted: #6b7280;
-  --accent: #2563eb;
-  --accent-contrast: #ffffff;
-  --accent-bg: #e8f0fe;
-  --positive: #0f9d58;
-  --positive-bg: #e6f6ec;
-  --negative: #d93025;
-  --negative-bg: #fdeceb;
-  --header-bg: #eef1f5;
-  --row-hover: #f0f4ff;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --bg: #0a0e15;
+  --side: #080b11;
+  --surface: #10151f;
+  --surface-2: #151c28;
+  --surface-3: #1f2838;
+  --raised: #141b27;
+  --line: #222b3b;
+  --line-soft: #19202d;
+  --line-strong: #2d3850;
+  --hover: #151c29;
+  --fg: #e7ecf3;
+  --fg-2: #aab4c3;
+  --muted: #7a8699;
+  --accent: #ff7a1f;
+  --accent-ink: #0a0e15;
+  --accent-soft: rgba(255, 122, 31, 0.13);
+  --up: #22c98e;
+  --up-soft: rgba(34, 201, 142, 0.13);
+  --down: #f5535f;
+  --down-soft: rgba(245, 83, 95, 0.13);
+  --c1: var(--accent);
+  --c2: #5b8cff;
+  --c3: #b28cff;
+  --c4: #2fc1c9;
+  --c5: #e8bd4f;
+  --c6: #4a5568;
+  --scrim: rgba(3, 5, 9, 0.62);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 
-  color-scheme: light;
-  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Instrument Sans', 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --font-num: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --gut: 24px;
+
+  color-scheme: dark;
 }
 
-/* Upstox-terminal inspired: dark navy ground, orange accent used sparingly
-   for active/interactive elements, TradingView-style bright green/red for
-   gains/losses (kept separate from the accent hue -- semantic color, not
-   brand color). */
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #10141c;
-  --surface: #10141c;
-  --surface-alt: #161b24;
-  --border: #232a35;
-  --text: #e3e8ee;
-  --text-muted: #76828f;
-  --accent: #ff6a1a;
-  --accent-contrast: #10141c;
-  --accent-bg: rgba(255, 106, 26, 0.12);
-  --positive: #17c98d;
-  --positive-bg: rgba(23, 201, 141, 0.1);
-  --negative: #f6465d;
-  --negative-bg: rgba(246, 70, 93, 0.1);
-  --header-bg: #10141c;
-  --row-hover: #161b24;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #f4f5f7;
+    --side: #eceef2;
+    --surface: #ffffff;
+    --surface-2: #f6f7f9;
+    --surface-3: #e9ecf1;
+    --raised: #ffffff;
+    --line: #e1e5eb;
+    --line-soft: #eef0f3;
+    --line-strong: #cbd2dc;
+    --hover: #f3f5f8;
+    --fg: #131923;
+    --fg-2: #3d4859;
+    --muted: #687386;
+    --accent: #d4560a;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(212, 86, 10, 0.1);
+    --up: #0b8a5a;
+    --up-soft: rgba(11, 138, 90, 0.1);
+    --down: #cf2e3b;
+    --down-soft: rgba(207, 46, 59, 0.09);
+    --c2: #3567e0;
+    --c3: #7c4fd6;
+    --c4: #138a92;
+    --c5: #a77c09;
+    --c6: #a0aab8;
+    --scrim: rgba(20, 26, 36, 0.35);
+    --shadow: 0 18px 50px rgba(20, 26, 36, 0.16);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --side: #eceef2;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #e9ecf1;
+  --raised: #ffffff;
+  --line: #e1e5eb;
+  --line-soft: #eef0f3;
+  --line-strong: #cbd2dc;
+  --hover: #f3f5f8;
+  --fg: #131923;
+  --fg-2: #3d4859;
+  --muted: #687386;
+  --accent: #d4560a;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(212, 86, 10, 0.1);
+  --up: #0b8a5a;
+  --up-soft: rgba(11, 138, 90, 0.1);
+  --down: #cf2e3b;
+  --down-soft: rgba(207, 46, 59, 0.09);
+  --c2: #3567e0;
+  --c3: #7c4fd6;
+  --c4: #138a92;
+  --c5: #a77c09;
+  --c6: #a0aab8;
+  --scrim: rgba(20, 26, 36, 0.35);
+  --shadow: 0 18px 50px rgba(20, 26, 36, 0.16);
+  color-scheme: light;
 }
 
 * {
@@ -56,32 +117,42 @@ body {
 
 body {
   background: var(--bg);
-  color: var(--text);
-  transition: background 0.2s ease, color 0.2s ease;
-  scrollbar-color: var(--border) transparent;
-  scrollbar-width: thin;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-body::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
-body::-webkit-scrollbar-track {
-  background: transparent;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-body::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 6px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-body::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-muted);
+code {
+  font-family: var(--font-num);
 }
 
-#root {
-  min-height: 100vh;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

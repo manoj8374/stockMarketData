@@ -185,7 +185,7 @@ export function buildStocksQuery(months, filters = {}) {
 export function buildSectorsQuery(minMarketCap = null) {
   const params = [];
   const sql = `
-    SELECT sector, COUNT(*) AS count
+    SELECT sector, COUNT(*) AS count, COUNT(DISTINCT industry) AS industries
     FROM instruments i
     WHERE ${EQUITY_FILTER} AND sector IS NOT NULL${marketCapFilter(minMarketCap, params)}
     GROUP BY sector
@@ -209,6 +209,31 @@ export function buildIndustryMomentumQuery(months, minMarketCap = null) {
   JOIN instrument_price_snapshot s ON s.instrument_id = i.id
   WHERE ${EQUITY_FILTER}
     AND i.industry IS NOT NULL${marketCapFilter(minMarketCap, params)}
+`;
+  return { sql, params };
+}
+
+// Sectors browse page: one row per stock carrying its sector, industry and
+// 1M return (today vs 1M ago -- the same definition as the smallest period in
+// buildGapReturnCols). sectors.js / industries.js aggregate these in JS into
+// a median 1M return and 1M breadth shown next to each count. Optionally
+// limited to one sector.
+export function buildOneMonthReturnsQuery(minMarketCap = null, sector = null) {
+  const params = [];
+  let filter = "";
+  if (sector) {
+    filter += " AND i.sector = ?";
+    params.push(sector);
+  }
+  filter += marketCapFilter(minMarketCap, params);
+  const sql = `
+  SELECT
+    i.sector, i.industry,
+    ${buildGapReturnCols([1])}
+  FROM instruments i
+  JOIN instrument_price_snapshot s ON s.instrument_id = i.id
+  WHERE ${EQUITY_FILTER}
+    AND i.sector IS NOT NULL${filter}
 `;
   return { sql, params };
 }

@@ -64,6 +64,21 @@ export function login(username, password) {
   return { token: sign({ username: match.username, role: match.role, exp: Date.now() + SESSION_TTL_MS }), role: match.role };
 }
 
+// Credentials for the shared guest account, shown on the login page so
+// visitors can sign in without asking. The account is the AUTH_USERS entry
+// named by GUEST_USERNAME, or else the first entry whose role is "guest".
+// An owner account is never returned, even if GUEST_USERNAME names one.
+// Returns null when no guest account is configured.
+export function getGuestCredentials() {
+  const users = getUsers();
+  const wanted = (process.env.GUEST_USERNAME || "").trim();
+  const guest = wanted
+    ? users.find((u) => u.username === wanted)
+    : users.find((u) => String(u.role || "").toLowerCase() === "guest");
+  if (!guest || guest.role === "owner" || !guest.username || !guest.password) return null;
+  return { username: guest.username, password: guest.password };
+}
+
 export function setSessionCookie(res, token) {
   res.setHeader(
     "Set-Cookie",

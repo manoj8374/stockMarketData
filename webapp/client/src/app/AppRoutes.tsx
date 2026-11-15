@@ -7,6 +7,7 @@ import { SectorDetailPage } from '../features/sectors/components/SectorDetailPag
 import { IndustryDrillPage } from '../features/sectors/components/IndustryDrillPage'
 import { IndustriesPage } from '../features/industries/components/IndustriesPage'
 import { PortfolioPage } from '../features/portfolio/components/PortfolioPage'
+import { WatchlistPage } from '../features/live/components/WatchlistPage'
 
 function SectorRoute() {
   const { sector = '' } = useParams()
@@ -28,6 +29,7 @@ export const AppRoutes = observer(function AppRoutes() {
       <Route path="/sectors/:sector" element={<SectorRoute />} />
       <Route path="/sectors/:sector/:industry" element={<IndustryRoute />} />
       <Route path="/industries" element={<IndustriesPage />} />
+      <Route path="/watchlist" element={<WatchlistPage />} />
       <Route path="/portfolio" element={auth.isOwner ? <PortfolioPage /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

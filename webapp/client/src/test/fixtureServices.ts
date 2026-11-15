@@ -4,6 +4,7 @@ import { StocksFixtureService } from '../features/screener/services/StocksFixtur
 import { SectorsFixtureService } from '../features/sectors/services/SectorsFixtureService'
 import { IndustryMomentumFixtureService } from '../features/industries/services/IndustryMomentumFixtureService'
 import { PortfolioFixtureService } from '../features/portfolio/services/PortfolioFixtureService'
+import { LiveFixtureService } from '../features/live/services/LiveFixtureService'
 
 export function createFixtureServices(): Services {
   return {
@@ -12,5 +13,6 @@ export function createFixtureServices(): Services {
     sectors: new SectorsFixtureService(),
     industryMomentum: new IndustryMomentumFixtureService(),
     portfolio: new PortfolioFixtureService(),
+    live: new LiveFixtureService(),
   }
 }

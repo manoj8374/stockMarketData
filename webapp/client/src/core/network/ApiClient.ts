@@ -16,17 +16,20 @@ export interface ApiClientOptions {
   baseUrl?: string
   fetchImpl?: FetchLike
   onUnauthorized?: (path: string) => void
+  credentials?: RequestCredentials
 }
 
 export class ApiClient {
   private readonly baseUrl: string
   private readonly fetchImpl: FetchLike
   private readonly onUnauthorized?: (path: string) => void
+  private readonly credentials: RequestCredentials
 
-  constructor({ baseUrl = '', fetchImpl, onUnauthorized }: ApiClientOptions = {}) {
+  constructor({ baseUrl = '', fetchImpl, onUnauthorized, credentials = 'include' }: ApiClientOptions = {}) {
     this.baseUrl = baseUrl
     this.fetchImpl = fetchImpl ?? ((input, init) => fetch(input, init))
     this.onUnauthorized = onUnauthorized
+    this.credentials = credentials
   }
 
   get<T>(path: string, query?: Query, signal?: AbortSignal, headers?: Record<string, string>) {
@@ -52,7 +55,7 @@ export class ApiClient {
       response = await this.fetchImpl(this.buildUrl(path, query), {
         method,
         signal,
-        credentials: 'include',
+        credentials: this.credentials,
         headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headers },
         body: body !== undefined ? JSON.stringify(body) : undefined,
       })

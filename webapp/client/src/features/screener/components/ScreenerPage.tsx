@@ -15,13 +15,23 @@ import { FiltersDrawer } from './FiltersDrawer'
 import { ColumnsMenu } from './ColumnsMenu'
 import { BackScorePanel } from './BackScore'
 import { QuickLook } from './QuickLook'
+import type { WatchlistStore } from '../../live/stores/WatchlistStore'
+
+const WatchlistButton = observer(function WatchlistButton({ symbol, watchlist }: { symbol: string; watchlist: WatchlistStore }) {
+  const added = watchlist.has(symbol)
+  return (
+    <button type="button" className="btn" disabled={added || watchlist.isFull} onClick={() => watchlist.add(symbol)}>
+      <Icon name={added ? 'watchlist' : 'plus'} />
+      {added ? 'In watchlist' : 'Add to watchlist'}
+    </button>
+  )
+})
 
 interface ScreenerPageProps {
   fixedSector?: string
   fixedIndustry?: string
   onBack?: () => void
   headerExtra?: ReactNode
-  quickLookActions?: (symbol: string) => ReactNode
 }
 
 export const ScreenerPage = observer(function ScreenerPage({
@@ -29,9 +39,8 @@ export const ScreenerPage = observer(function ScreenerPage({
   fixedIndustry,
   onBack,
   headerExtra,
-  quickLookActions,
 }: ScreenerPageProps) {
-  const { stocks, preferences } = useStores()
+  const { stocks, preferences, watchlist } = useStores()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const controller = useController(
@@ -161,7 +170,7 @@ export const ScreenerPage = observer(function ScreenerPage({
           weights={controller.normalizedWeights}
           backWeights={controller.backWeights}
           onClose={controller.closeQuickLook}
-          actions={quickLookActions?.(quickRow.stock.symbol)}
+          actions={<WatchlistButton symbol={`NSE:${quickRow.stock.symbol}`} watchlist={watchlist} />}
           onOpenIndustry={
             !controller.embedded && quickRow.stock.sector && quickRow.stock.industry
               ? () => navigate(industryPath(quickRow.stock.sector as string, quickRow.stock.industry as string))

@@ -6,6 +6,7 @@ import { BrandMark, Icon, type IconName } from '../../common/components'
 import { MIN_MARKET_CAP_CR } from '../../common/stores/PreferencesStore'
 import { formatDateTime } from '../../common/utils/format'
 import { Breadcrumbs } from './Breadcrumbs'
+import { LiveStatusBadge } from '../../features/live/components/LiveStatusBadge'
 
 interface NavItem {
   to: string
@@ -23,6 +24,10 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { to: '/sectors', label: 'Sectors', icon: 'sectors' },
       { to: '/industries', label: 'Industries', icon: 'industries' },
     ],
+  },
+  {
+    label: 'Markets',
+    items: [{ to: '/watchlist', label: 'Watchlist', icon: 'watchlist' }],
   },
   {
     label: 'Account',
@@ -126,6 +131,7 @@ export const AppShell = observer(function AppShell({ children }: { children: Rea
               <Breadcrumbs pathname={pathname} />
             </div>
             <div className="top-actions">
+              <LiveStatusBadge />
               {showCapToggle && <SmallCapToggle />}
               {asOf && (
                 <span className="asof" title="When this data was loaded">

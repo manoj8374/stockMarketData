@@ -87,6 +87,7 @@ const PATHS: Record<string, ReactNode> = {
   ),
   x: <path d="M6 6l12 12M18 6L6 18" />,
   chevronDown: <path d="M6 9l6 6 6-6" />,
+  chevronUp: <path d="M6 15l6-6 6 6" />,
   chevronRight: <path d="M9 6l6 6-6 6" />,
   chevronLeft: <path d="M15 6l-6 6 6 6" />,
   clock: (

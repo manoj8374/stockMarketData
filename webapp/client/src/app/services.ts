@@ -9,6 +9,8 @@ import type { IndustryMomentumService } from '../features/industries/services/In
 import { IndustryMomentumApiService } from '../features/industries/services/IndustryMomentumApiService'
 import type { PortfolioService } from '../features/portfolio/services/PortfolioService'
 import { PortfolioApiService } from '../features/portfolio/services/PortfolioApiService'
+import type { LiveService } from '../features/live/services/LiveService'
+import { LiveApiService } from '../features/live/services/LiveApiService'
 
 export interface Services {
   auth: AuthService
@@ -16,6 +18,7 @@ export interface Services {
   sectors: SectorsService
   industryMomentum: IndustryMomentumService
   portfolio: PortfolioService
+  live: LiveService
 }
 
 export function createApiServices(api: ApiClient): Services {
@@ -25,5 +28,6 @@ export function createApiServices(api: ApiClient): Services {
     sectors: new SectorsApiService(api),
     industryMomentum: new IndustryMomentumApiService(api),
     portfolio: new PortfolioApiService(api),
+    live: new LiveApiService(api),
   }
 }

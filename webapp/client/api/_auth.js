@@ -30,7 +30,7 @@ function verify(token) {
   }
   try {
     const payload = JSON.parse(Buffer.from(data, "base64url").toString());
-    if (!payload.exp || payload.exp < Date.now()) return null;
+    if (!payload.exp || payload.exp < Date.now() || payload.aud) return null;
     return payload;
   } catch {
     return null;
@@ -62,6 +62,14 @@ export function login(username, password) {
   const match = users.find((u) => u.username === username && u.password === password);
   if (!match) return null;
   return { token: sign({ username: match.username, role: match.role, exp: Date.now() + SESSION_TTL_MS }), role: match.role };
+}
+
+const LIVE_TOKEN_TTL_MS = 10 * 60 * 1000;
+
+// Short-lived token the browser presents to the live relay (a separate
+// service on another domain, so it can't read the session cookie).
+export function signLiveToken(session) {
+  return sign({ username: session.username, role: session.role, aud: "live", exp: Date.now() + LIVE_TOKEN_TTL_MS });
 }
 
 // Credentials for the shared guest account, shown on the login page so

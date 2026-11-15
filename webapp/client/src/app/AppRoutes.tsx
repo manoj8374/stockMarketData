@@ -6,7 +6,7 @@ import { SectorsPage } from '../features/sectors/components/SectorsPage'
 import { SectorDetailPage } from '../features/sectors/components/SectorDetailPage'
 import { IndustryDrillPage } from '../features/sectors/components/IndustryDrillPage'
 import { IndustriesPage } from '../features/industries/components/IndustriesPage'
-import Portfolio from '../Portfolio'
+import { PortfolioPage } from '../features/portfolio/components/PortfolioPage'
 
 function SectorRoute() {
   const { sector = '' } = useParams()
@@ -28,7 +28,7 @@ export const AppRoutes = observer(function AppRoutes() {
       <Route path="/sectors/:sector" element={<SectorRoute />} />
       <Route path="/sectors/:sector/:industry" element={<IndustryRoute />} />
       <Route path="/industries" element={<IndustriesPage />} />
-      <Route path="/portfolio" element={auth.isOwner ? <Portfolio /> : <Navigate to="/" replace />} />
+      <Route path="/portfolio" element={auth.isOwner ? <PortfolioPage /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

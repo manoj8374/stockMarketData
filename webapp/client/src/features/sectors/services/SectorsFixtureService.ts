@@ -42,7 +42,10 @@ export class SectorsFixtureService implements SectorsService {
 
   async getIndustries(sector: string, minMarketCap: number) {
     const inSector = this.eligible(minMarketCap).filter((s) => s.sector === sector)
-    const industries: IndustrySummaryDto[] = [...groupBy(inSector, (s) => s.industry)].map(([industry, list]) => ({ industry, ...stats(list) }))
+    const industries: IndustrySummaryDto[] = [...groupBy(inSector, (s) => s.industry)].map(([industry, list]) => ({
+      industry,
+      ...stats(list),
+    }))
     return { industries }
   }
 }

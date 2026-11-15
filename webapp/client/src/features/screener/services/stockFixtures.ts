@@ -91,7 +91,8 @@ export function toStockDto(s: FixtureStock, months: readonly number[]): StockDto
     dto[`bref_${m}m`] = priceAt(m)
     dto[`brefdate_${m}m`] = monthsAgo(m)
   }
-  const back = (pivot: number, ago: number, baseline: number) => (dto[`return_${pivot}back_${ago}m`] = pct(priceAt(ago), priceAt(baseline)))
+  const back = (pivot: number, ago: number, baseline: number) =>
+    (dto[`return_${pivot}back_${ago}m`] = pct(priceAt(ago), priceAt(baseline)))
   back(1, 2, 1)
   back(1, 4, 2)
   back(1, 7, 4)

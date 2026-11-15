@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { observer } from 'mobx-react-lite'
 import { useStores } from '../useStores'
 import { BrandMark, Icon, type IconName } from '../../common/components'
 import { MIN_MARKET_CAP_CR } from '../../common/stores/PreferencesStore'
 import { formatDateTime } from '../../common/utils/format'
-import { ShellContext } from '../../shell'
 import { Breadcrumbs } from './Breadcrumbs'
 
 interface NavItem {
@@ -57,13 +56,10 @@ const SmallCapToggle = observer(function SmallCapToggle() {
 export const AppShell = observer(function AppShell({ children }: { children: ReactNode }) {
   const { auth, preferences, ui } = useStores()
   const { pathname } = useLocation()
-  const [legacyRefreshKey, setLegacyRefreshKey] = useState(0)
-  const [legacyMeta, setLegacyMeta] = useState<{ asOf: string | null; loading: boolean }>({ asOf: null, loading: false })
-  const legacyShell = useMemo(() => ({ refreshKey: legacyRefreshKey, setMeta: setLegacyMeta }), [legacyRefreshKey])
   const user = auth.user
   const page = ui.activePage
-  const asOf = page ? page.asOf : legacyMeta.asOf
-  const refreshing = page ? page.isRefreshing : legacyMeta.loading
+  const asOf = page?.asOf ?? null
+  const refreshing = page?.isRefreshing ?? false
   const nextTheme = preferences.theme === 'dark' ? 'light' : 'dark'
   const showCapToggle = !['/portfolio', '/watchlist', '/option-chain'].includes(pathname)
 
@@ -73,95 +69,103 @@ export const AppShell = observer(function AppShell({ children }: { children: Rea
 
   if (!user) return null
 
-  const refresh = () => (page ? ui.refreshActivePage() : setLegacyRefreshKey((k) => k + 1))
-
   return (
-    <ShellContext.Provider value={legacyShell as never}>
-      <div className="shell">
-        <aside className="side">
-          <div className="brand">
-            <BrandMark />
-            <div>
-              <b>NSE Equities</b>
-              <span>Momentum workbench</span>
-            </div>
+    <div className="shell">
+      <aside className="side">
+        <div className="brand">
+          <BrandMark />
+          <div>
+            <b>NSE Equities</b>
+            <span>Momentum workbench</span>
           </div>
-          <nav className="nav" aria-label="Main">
-            {NAV_GROUPS.map((group) => {
-              const items = group.items.filter((item) => !item.ownerOnly || user.isOwner)
-              if (!items.length) return null
-              return (
-                <div className="nav-group" key={group.label}>
-                  <div className="nav-label">{group.label}</div>
-                  {items.map((item) => (
-                    <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'on' : undefined)}>
-                      <Icon name={item.icon} />
-                      <span>{item.label}</span>
-                      {item.ownerOnly && <span className="own">Owner</span>}
-                    </NavLink>
-                  ))}
-                </div>
-              )
-            })}
-          </nav>
-          <div className="side-foot">
-            <div className="user">
-              <span className="avatar" aria-hidden="true">
-                {user.initial}
-              </span>
-              <div>
-                <b>{user.username}</b>
-                <span>{user.roleLabel}</span>
+        </div>
+        <nav className="nav" aria-label="Main">
+          {NAV_GROUPS.map((group) => {
+            const items = group.items.filter((item) => !item.ownerOnly || user.isOwner)
+            if (!items.length) return null
+            return (
+              <div className="nav-group" key={group.label}>
+                <div className="nav-label">{group.label}</div>
+                {items.map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'on' : undefined)}>
+                    <Icon name={item.icon} />
+                    <span>{item.label}</span>
+                    {item.ownerOnly && <span className="own">Owner</span>}
+                  </NavLink>
+                ))}
               </div>
-              <button type="button" className="icon-btn plain" onClick={() => void auth.logout()} title="Log out" aria-label="Log out">
+            )
+          })}
+        </nav>
+        <div className="side-foot">
+          <div className="user">
+            <span className="avatar" aria-hidden="true">
+              {user.initial}
+            </span>
+            <div>
+              <b>{user.username}</b>
+              <span>{user.roleLabel}</span>
+            </div>
+            <button
+              type="button"
+              className="icon-btn plain"
+              onClick={() => void auth.logout()}
+              title="Log out"
+              aria-label="Log out"
+            >
+              <Icon name="logout" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="main">
+        <header className="topbar">
+          <div className="topbar-in">
+            <div className="crumbs">
+              <Breadcrumbs pathname={pathname} />
+            </div>
+            <div className="top-actions">
+              {showCapToggle && <SmallCapToggle />}
+              {asOf && (
+                <span className="asof" title="When this data was loaded">
+                  <Icon name="clock" />
+                  {formatDateTime(asOf)}
+                </span>
+              )}
+              <button
+                type="button"
+                className={`icon-btn ${refreshing ? 'spin' : ''}`}
+                onClick={ui.refreshActivePage}
+                disabled={refreshing || !page}
+                title={refreshing ? 'Loading…' : 'Refresh data'}
+                aria-label="Refresh data"
+              >
+                <Icon name="refresh" />
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={preferences.toggleTheme}
+                title={`Switch to ${nextTheme} theme`}
+                aria-label={`Switch to ${nextTheme} theme`}
+              >
+                <Icon name={preferences.theme === 'dark' ? 'sun' : 'moon'} />
+              </button>
+              <button
+                type="button"
+                className="icon-btn mobile-only"
+                onClick={() => void auth.logout()}
+                title="Log out"
+                aria-label="Log out"
+              >
                 <Icon name="logout" />
               </button>
             </div>
           </div>
-        </aside>
-
-        <div className="main">
-          <header className="topbar">
-            <div className="topbar-in">
-              <div className="crumbs">
-                <Breadcrumbs pathname={pathname} />
-              </div>
-              <div className="top-actions">
-                {showCapToggle && <SmallCapToggle />}
-                {asOf && (
-                  <span className="asof" title="When this data was loaded">
-                    <Icon name="clock" />
-                    {formatDateTime(asOf)}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className={`icon-btn ${refreshing ? 'spin' : ''}`}
-                  onClick={refresh}
-                  disabled={refreshing}
-                  title={refreshing ? 'Loading…' : 'Refresh data'}
-                  aria-label="Refresh data"
-                >
-                  <Icon name="refresh" />
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={preferences.toggleTheme}
-                  title={`Switch to ${nextTheme} theme`}
-                  aria-label={`Switch to ${nextTheme} theme`}
-                >
-                  <Icon name={preferences.theme === 'dark' ? 'sun' : 'moon'} />
-                </button>
-                <button type="button" className="icon-btn mobile-only" onClick={() => void auth.logout()} title="Log out" aria-label="Log out">
-                  <Icon name="logout" />
-                </button>
-              </div>
-            </div>
-          </header>
-          <main className="content">{children}</main>
-        </div>
+        </header>
+        <main className="content">{children}</main>
       </div>
-    </ShellContext.Provider>
+    </div>
   )
 })

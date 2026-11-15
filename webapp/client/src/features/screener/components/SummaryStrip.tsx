@@ -18,7 +18,11 @@ export const SummaryStrip = observer(function SummaryStrip({ controller }: { con
 
   return (
     <div className="stat-strip">
-      <Stat label="Matching" value={s.matching.toLocaleString('en-IN')} sub={`of ${s.total.toLocaleString('en-IN')} ${universe}`} />
+      <Stat
+        label="Matching"
+        value={s.matching.toLocaleString('en-IN')}
+        sub={`of ${s.total.toLocaleString('en-IN')} ${universe}`}
+      />
       <Stat
         label={`Advancing · ${s.firstMonth}M`}
         value={<span className={`tone ${advancingTone}`}>{s.advancing.toLocaleString('en-IN')}</span>}

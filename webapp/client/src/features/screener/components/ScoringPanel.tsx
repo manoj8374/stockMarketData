@@ -49,14 +49,20 @@ export const ScoringPanel = observer(function ScoringPanel({ controller }: { con
             </div>
             <div className="mchips">
               {MONTH_OPTIONS.map((m) => (
-                <button type="button" key={m} className="mchip" aria-pressed={months.includes(m)} onClick={() => controller.toggleMonth(m)}>
+                <button
+                  type="button"
+                  key={m}
+                  className="mchip"
+                  aria-pressed={months.includes(m)}
+                  onClick={() => controller.toggleMonth(m)}
+                >
                   {m}M
                 </button>
               ))}
             </div>
             <p className="hint">
-              Each period starts where the next shorter one ends. With 1M, 3M and 6M that means today→1M ago, 1M→3M ago and
-              3M→6M ago, so no stretch of price action counts twice. A period you add starts at 0% weight.
+              Each period starts where the next shorter one ends. With 1M, 3M and 6M that means today→1M ago, 1M→3M ago and 3M→6M
+              ago, so no stretch of price action counts twice. A period you add starts at 0% weight.
             </p>
           </div>
           <div>

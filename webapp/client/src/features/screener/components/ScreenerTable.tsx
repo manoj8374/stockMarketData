@@ -104,7 +104,15 @@ interface RowProps {
   onToggleBack: (anchor: BackAnchor | null) => void
 }
 
-const ScreenerRow = observer(function ScreenerRow({ row, columns, groupStarts, openBack, cellValue, onOpen, onToggleBack }: RowProps) {
+const ScreenerRow = observer(function ScreenerRow({
+  row,
+  columns,
+  groupStarts,
+  openBack,
+  cellValue,
+  onOpen,
+  onToggleBack,
+}: RowProps) {
   const s = row.stock
   return (
     <tr
@@ -139,14 +147,22 @@ const ScreenerRow = observer(function ScreenerRow({ row, columns, groupStarts, o
           }
           case 'marketcap':
             return (
-              <td key={col.key} className="num" title={s.marketCapUpdatedAt ? `As of ${formatDate(s.marketCapUpdatedAt)}` : undefined}>
+              <td
+                key={col.key}
+                className="num"
+                title={s.marketCapUpdatedAt ? `As of ${formatDate(s.marketCapUpdatedAt)}` : undefined}
+              >
                 {formatMarketCap(s.marketCapCr)}
               </td>
             )
           case 'price': {
             const value = cellValue(row, col.key)
             return (
-              <td key={col.key} className={`num${gs}`} title={col.key === 'all_time_high' && s.athDate ? `Reached ${formatDate(s.athDate)}` : undefined}>
+              <td
+                key={col.key}
+                className={`num${gs}`}
+                title={col.key === 'all_time_high' && s.athDate ? `Reached ${formatDate(s.athDate)}` : undefined}
+              >
                 {formatPrice(value)}
               </td>
             )
@@ -159,7 +175,12 @@ const ScreenerRow = observer(function ScreenerRow({ row, columns, groupStarts, o
             )
           case 'ath': {
             const diff = s.diffFromAth
-            if (diff === null) return <td key={col.key} className={`num${gs}`}>—</td>
+            if (diff === null)
+              return (
+                <td key={col.key} className={`num${gs}`}>
+                  —
+                </td>
+              )
             return (
               <td key={col.key} className={`num${gs}`}>
                 <span className="ath">
@@ -172,7 +193,12 @@ const ScreenerRow = observer(function ScreenerRow({ row, columns, groupStarts, o
             )
           }
           case 'momentum':
-            if (row.momentum === null) return <td key={col.key} className={`num${gs}`}>—</td>
+            if (row.momentum === null)
+              return (
+                <td key={col.key} className={`num${gs}`}>
+                  —
+                </td>
+              )
             return (
               <td key={col.key} className={`num${gs}`}>
                 <span className={`score ${tone(row.momentum)}`}>

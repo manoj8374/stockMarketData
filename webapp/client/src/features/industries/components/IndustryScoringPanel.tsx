@@ -51,7 +51,13 @@ export const IndustryScoringPanel = observer(function IndustryScoringPanel({ sto
             </div>
             <WeightBar items={blend ? BLEND_KEYS.map((k) => [BLEND_LABELS[k], blend[k]] as const) : null} />
             {BLEND_KEYS.map((k) => (
-              <WeightRow key={k} id={`ind-b-${k}`} label={BLEND_LABELS[k]} value={store.blend[k]} onChange={(v) => store.setBlend(k, v)} />
+              <WeightRow
+                key={k}
+                id={`ind-b-${k}`}
+                label={BLEND_LABELS[k]}
+                value={store.blend[k]}
+                onChange={(v) => store.setBlend(k, v)}
+              />
             ))}
             <div className="sc-actions">
               <span className="muted small">How each period's score is built from its stocks' returns.</span>
@@ -66,7 +72,13 @@ export const IndustryScoringPanel = observer(function IndustryScoringPanel({ sto
             </div>
             <WeightBar items={periods ? PERIODS.map((m) => [`${m}M`, periods[m]] as const) : null} />
             {PERIODS.map((m) => (
-              <WeightRow key={m} id={`ind-p-${m}`} label={`${m}M`} value={store.periodWeights[m]} onChange={(v) => store.setPeriodWeight(m, v)} />
+              <WeightRow
+                key={m}
+                id={`ind-p-${m}`}
+                label={`${m}M`}
+                value={store.periodWeights[m]}
+                onChange={(v) => store.setPeriodWeight(m, v)}
+              />
             ))}
             <div className="sc-actions">
               <span className="muted small">Breadth is shown but never part of the score.</span>

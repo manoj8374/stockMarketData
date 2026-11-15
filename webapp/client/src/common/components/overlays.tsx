@@ -41,7 +41,14 @@ export function Drawer({ title, onClose, children, footer, wide = false }: Drawe
   return createPortal(
     <div className="drawer-layer">
       <div className="scrim" onClick={() => close.current()} />
-      <aside className={`drawer ${wide ? 'drawer-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} ref={panelRef} tabIndex={-1}>
+      <aside
+        className={`drawer ${wide ? 'drawer-wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        ref={panelRef}
+        tabIndex={-1}
+      >
         <header className="drawer-head">
           <h2>{title}</h2>
           <button type="button" className="icon-btn" onClick={() => close.current()} aria-label="Close">

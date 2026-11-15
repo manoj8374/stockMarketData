@@ -38,7 +38,11 @@ export class IndustryMomentumStore {
 
   constructor(service: IndustryMomentumService) {
     this.service = service
-    makeAutoObservable<IndustryMomentumStore, 'byMinCap' | 'service'>(this, { byMinCap: false, service: false }, { autoBind: true })
+    makeAutoObservable<IndustryMomentumStore, 'byMinCap' | 'service'>(
+      this,
+      { byMinCap: false, service: false },
+      { autoBind: true }
+    )
   }
 
   get normalizedBlend(): Record<BlendKey, number> | null {

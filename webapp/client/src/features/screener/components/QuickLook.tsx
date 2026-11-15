@@ -60,7 +60,15 @@ interface QuickLookProps {
   actions?: ReactNode
 }
 
-export const QuickLook = observer(function QuickLook({ row, months, weights, backWeights, onClose, onOpenIndustry, actions }: QuickLookProps) {
+export const QuickLook = observer(function QuickLook({
+  row,
+  months,
+  weights,
+  backWeights,
+  onClose,
+  onOpenIndustry,
+  actions,
+}: QuickLookProps) {
   const s = row.stock
   const parts = months.map((m, i) => {
     const ret = s.returnFor(m)
@@ -131,7 +139,9 @@ export const QuickLook = observer(function QuickLook({ row, months, weights, bac
             </div>
           )
         })}
-        {row.momentum === null && <p className="muted small">No score: at least one selected period has no price data for this stock.</p>}
+        {row.momentum === null && (
+          <p className="muted small">No score: at least one selected period has no price data for this stock.</p>
+        )}
       </section>
 
       <section>
@@ -164,7 +174,8 @@ export const QuickLook = observer(function QuickLook({ row, months, weights, bac
         )
       })}
       <p className="muted small flush">
-        Back-scores use the 1M / 3M / 6M weights ({backWeights[1].toFixed(0)}% / {backWeights[3].toFixed(0)}% / {backWeights[6].toFixed(0)}%).
+        Back-scores use the 1M / 3M / 6M weights ({backWeights[1].toFixed(0)}% / {backWeights[3].toFixed(0)}% /{' '}
+        {backWeights[6].toFixed(0)}%).
       </p>
     </Drawer>
   )

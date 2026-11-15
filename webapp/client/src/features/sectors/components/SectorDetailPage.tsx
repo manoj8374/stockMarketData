@@ -9,7 +9,10 @@ import { SectorDetailController } from '../controllers/SectorsController'
 export const SectorDetailPage = observer(function SectorDetailPage({ sector }: { sector: string }) {
   const { sectors, preferences } = useStores()
   const navigate = useNavigate()
-  const controller = useController(() => new SectorDetailController({ sectors, preferences }, sector), [sectors, preferences, sector])
+  const controller = useController(
+    () => new SectorDetailController({ sectors, preferences }, sector),
+    [sectors, preferences, sector]
+  )
   useActivePage(controller)
   const { loadError, industries } = controller
   const hasData = controller.resource?.data != null
@@ -35,7 +38,8 @@ export const SectorDetailPage = observer(function SectorDetailPage({ sector }: {
   } else if (industries.length === 0) {
     body = (
       <StateBlock title="No industries here">
-        No stocks in this sector pass the current market-cap setting. Turn off “Hide under ₹2,000 Cr” to include smaller companies.
+        No stocks in this sector pass the current market-cap setting. Turn off “Hide under ₹2,000 Cr” to include smaller
+        companies.
       </StateBlock>
     )
   } else {

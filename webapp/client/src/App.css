@@ -292,7 +292,9 @@
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .btn:hover:not(:disabled) {
   border-color: var(--line-strong);
@@ -1808,7 +1810,9 @@ table.tbl {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   color: var(--fg);
   min-width: 0;
 }

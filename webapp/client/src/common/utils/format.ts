@@ -86,7 +86,10 @@ export function tone(v: Numeric): Tone {
 }
 
 export function median(values: Numeric[]) {
-  const a = values.filter(isNum).map(Number).sort((x, y) => x - y)
+  const a = values
+    .filter(isNum)
+    .map(Number)
+    .sort((x, y) => x - y)
   if (!a.length) return null
   return quantile(a, 0.5)
 }

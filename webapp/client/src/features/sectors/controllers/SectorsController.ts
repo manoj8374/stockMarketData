@@ -38,11 +38,21 @@ export class SectorsController implements PageController {
 
   constructor(deps: Deps) {
     this.deps = deps
-    makeAutoObservable<SectorsController, 'deps' | 'disposer'>(this, { resource: observableRef, deps: false, disposer: false }, { autoBind: true })
+    makeAutoObservable<SectorsController, 'deps' | 'disposer'>(
+      this,
+      { resource: observableRef, deps: false, disposer: false },
+      { autoBind: true }
+    )
   }
 
   mount() {
-    this.disposer.add(reaction(() => this.deps.preferences.minMarketCap, () => void this.load(), { fireImmediately: true }))
+    this.disposer.add(
+      reaction(
+        () => this.deps.preferences.minMarketCap,
+        () => void this.load(),
+        { fireImmediately: true }
+      )
+    )
   }
 
   dispose() {
@@ -124,7 +134,13 @@ export class SectorDetailController implements PageController {
   }
 
   mount() {
-    this.disposer.add(reaction(() => this.deps.preferences.minMarketCap, () => void this.load(), { fireImmediately: true }))
+    this.disposer.add(
+      reaction(
+        () => this.deps.preferences.minMarketCap,
+        () => void this.load(),
+        { fireImmediately: true }
+      )
+    )
   }
 
   dispose() {

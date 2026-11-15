@@ -8,7 +8,8 @@ const MIN_STOCKS = 3
 const round2 = (v: number) => Math.round(v * 100) / 100
 
 function periodStats(values: number[]): PeriodStatsDto {
-  if (values.length < MIN_STOCKS) return { count: values.length, mean: null, median: null, p75: null, positive: null, breadth: null }
+  if (values.length < MIN_STOCKS)
+    return { count: values.length, mean: null, median: null, p75: null, positive: null, breadth: null }
   const sorted = [...values].sort((a, b) => a - b)
   const positive = values.filter((v) => v > 0).length
   return {

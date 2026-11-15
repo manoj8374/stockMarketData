@@ -24,7 +24,13 @@ interface ScreenerPageProps {
   quickLookActions?: (symbol: string) => ReactNode
 }
 
-export const ScreenerPage = observer(function ScreenerPage({ fixedSector, fixedIndustry, onBack, headerExtra, quickLookActions }: ScreenerPageProps) {
+export const ScreenerPage = observer(function ScreenerPage({
+  fixedSector,
+  fixedIndustry,
+  onBack,
+  headerExtra,
+  quickLookActions,
+}: ScreenerPageProps) {
   const { stocks, preferences } = useStores()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -37,7 +43,11 @@ export const ScreenerPage = observer(function ScreenerPage({ fixedSector, fixedI
   useActivePage(controller)
 
   useEffect(
-    () => reaction(() => controller.urlParams, (params) => setSearchParams(new URLSearchParams(params), { replace: true })),
+    () =>
+      reaction(
+        () => controller.urlParams,
+        (params) => setSearchParams(new URLSearchParams(params), { replace: true })
+      ),
     [controller, setSearchParams]
   )
 
@@ -78,7 +88,9 @@ export const ScreenerPage = observer(function ScreenerPage({ fixedSector, fixedI
       />
       <FilterChips controller={controller} />
 
-      {error && controller.stocks.length > 0 && <Banner>Couldn't refresh the data ({error.message}). Showing the last data that loaded.</Banner>}
+      {error && controller.stocks.length > 0 && (
+        <Banner>Couldn't refresh the data ({error.message}). Showing the last data that loaded.</Banner>
+      )}
 
       <section className="card table-card">
         {error && controller.stocks.length === 0 ? (

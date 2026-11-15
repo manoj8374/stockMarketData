@@ -30,7 +30,11 @@ export const ScreenerToolbar = observer(function ScreenerToolbar({ controller, c
       </div>
       {!controller.embedded && (
         <>
-          <select value={controller.sectorFilter} onChange={(e) => controller.setSectorFilter(e.target.value)} aria-label="Sector">
+          <select
+            value={controller.sectorFilter}
+            onChange={(e) => controller.setSectorFilter(e.target.value)}
+            aria-label="Sector"
+          >
             <option value="">All sectors</option>
             {controller.sectorOptions.map((s) => (
               <option key={s} value={s}>
@@ -38,7 +42,11 @@ export const ScreenerToolbar = observer(function ScreenerToolbar({ controller, c
               </option>
             ))}
           </select>
-          <select value={controller.industryFilter} onChange={(e) => controller.setIndustryFilter(e.target.value)} aria-label="Industry">
+          <select
+            value={controller.industryFilter}
+            onChange={(e) => controller.setIndustryFilter(e.target.value)}
+            aria-label="Industry"
+          >
             <option value="">All industries</option>
             {controller.industryOptions.map((i) => (
               <option key={i} value={i}>
@@ -65,17 +73,27 @@ export const ScreenerToolbar = observer(function ScreenerToolbar({ controller, c
 
 export const FilterChips = observer(function FilterChips({ controller }: { controller: ScreenerController }) {
   const chips: Array<{ key: string; label: string; remove: () => void }> = []
-  if (controller.search) chips.push({ key: 'search', label: `Search: “${controller.search}”`, remove: () => controller.setSearch('') })
+  if (controller.search)
+    chips.push({ key: 'search', label: `Search: “${controller.search}”`, remove: () => controller.setSearch('') })
   if (!controller.embedded && controller.sectorFilter) {
     chips.push({ key: 'sector', label: `Sector: ${controller.sectorFilter}`, remove: () => controller.setSectorFilter('') })
   }
   if (!controller.embedded && controller.industryFilter) {
-    chips.push({ key: 'industry', label: `Industry: ${controller.industryFilter}`, remove: () => controller.setIndustryFilter('') })
+    chips.push({
+      key: 'industry',
+      label: `Industry: ${controller.industryFilter}`,
+      remove: () => controller.setIndustryFilter(''),
+    })
   }
   for (const field of controller.activeRanges) {
     const { min, max } = controller.rangeFor(field.key)
     const fmt = (v: string) => (field.key === 'market_cap_cr' ? `₹${Number(v).toLocaleString('en-IN')} Cr` : `${v}%`)
-    const text = min !== '' && max !== '' ? `${field.label}: ${fmt(min)} to ${fmt(max)}` : min !== '' ? `${field.label} ≥ ${fmt(min)}` : `${field.label} ≤ ${fmt(max)}`
+    const text =
+      min !== '' && max !== ''
+        ? `${field.label}: ${fmt(min)} to ${fmt(max)}`
+        : min !== ''
+          ? `${field.label} ≥ ${fmt(min)}`
+          : `${field.label} ≤ ${fmt(max)}`
     chips.push({ key: field.key, label: text, remove: () => controller.setRange(field.key, { min: '', max: '' }) })
   }
   if (!chips.length) return null

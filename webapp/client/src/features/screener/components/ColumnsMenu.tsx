@@ -27,7 +27,11 @@ export const ColumnsMenu = observer(function ColumnsMenu({ controller, anchor, o
             <div className="colchecks">
               {columns.map((c) => (
                 <label className="check" key={c.key}>
-                  <input type="checkbox" checked={!controller.hiddenColumns.has(c.key)} onChange={() => controller.toggleColumn(c.key)} />
+                  <input
+                    type="checkbox"
+                    checked={!controller.hiddenColumns.has(c.key)}
+                    onChange={() => controller.toggleColumn(c.key)}
+                  />
                   <span>{c.label}</span>
                 </label>
               ))}

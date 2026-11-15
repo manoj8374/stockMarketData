@@ -75,7 +75,9 @@ export const SectorsPage = observer(function SectorsPage() {
             )
           }
         >
-          {controller.search ? `Nothing matches “${controller.search}”.` : 'No sectors have stocks under the current market-cap setting.'}
+          {controller.search
+            ? `Nothing matches “${controller.search}”.`
+            : 'No sectors have stocks under the current market-cap setting.'}
         </StateBlock>
       </div>
     )
@@ -105,7 +107,12 @@ export const SectorsPage = observer(function SectorsPage() {
         </div>
         <span className="spacer" />
         <span className="muted small">Sort</span>
-        <Segmented<SectorSort> label="Sort sectors" options={SECTOR_SORTS} value={controller.sortBy} onChange={controller.setSortBy} />
+        <Segmented<SectorSort>
+          label="Sort sectors"
+          options={SECTOR_SORTS}
+          value={controller.sortBy}
+          onChange={controller.setSortBy}
+        />
       </div>
       <div className="sgrid">{body}</div>
       <p className="muted small flush">

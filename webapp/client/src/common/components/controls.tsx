@@ -150,14 +150,26 @@ interface PaginationProps {
   noun?: string
 }
 
-export function Pagination({ page, totalPages, total, pageSize, pageSizeOptions, onPage, onPageSize, noun = 'stocks' }: PaginationProps) {
+export function Pagination({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  pageSizeOptions,
+  onPage,
+  onPageSize,
+  noun = 'stocks',
+}: PaginationProps) {
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1
   const end = Math.min(page * pageSize, total)
   return (
     <div className="pager">
       <div>
-        Showing <b>{start.toLocaleString('en-IN')}–{end.toLocaleString('en-IN')}</b> of <b>{total.toLocaleString('en-IN')}</b>{' '}
-        {noun}
+        Showing{' '}
+        <b>
+          {start.toLocaleString('en-IN')}–{end.toLocaleString('en-IN')}
+        </b>{' '}
+        of <b>{total.toLocaleString('en-IN')}</b> {noun}
       </div>
       <div className="pager-r">
         <label className="small">

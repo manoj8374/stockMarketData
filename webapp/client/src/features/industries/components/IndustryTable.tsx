@@ -30,7 +30,15 @@ export const IndustryTable = observer(function IndustryTable({ controller, onOpe
               className="num"
               title="Stocks included in the calculations (respects the market-cap toggle)"
             />
-            <SortTh colKey="score" label="Industry score" sorts={sorts} onSort={sortBy} rowSpan={2} className="num" title="Weighted blend of the period scores" />
+            <SortTh
+              colKey="score"
+              label="Industry score"
+              sorts={sorts}
+              onSort={sortBy}
+              rowSpan={2}
+              className="num"
+              title="Weighted blend of the period scores"
+            />
             {PERIODS.map((m) => (
               <th key={m} colSpan={metrics.length} className="th-group">
                 {m}M<span className="th-group-sub">{periodDescription(m)}</span>
@@ -94,13 +102,20 @@ export const IndustryTable = observer(function IndustryTable({ controller, onOpe
                     const cls = `num${i === 0 ? ' gstart' : ''}`
                     if (metric === 'breadth') {
                       return (
-                        <td key={`${metric}_${m}`} className={cls} title={st.breadth === null ? tooFew : `${st.positive} of ${st.count} stocks rose`}>
+                        <td
+                          key={`${metric}_${m}`}
+                          className={cls}
+                          title={st.breadth === null ? tooFew : `${st.positive} of ${st.count} stocks rose`}
+                        >
                           <Breadth value={st.breadth} positive={st.positive} count={st.count} />
                         </td>
                       )
                     }
                     if (metric === 'score') {
-                      const title = st.median === null ? tooFew : `Median ${formatPct(st.median)} · P75 ${formatPct(st.p75)} · Mean ${formatPct(st.mean)} (${st.count} stocks)`
+                      const title =
+                        st.median === null
+                          ? tooFew
+                          : `Median ${formatPct(st.median)} · P75 ${formatPct(st.p75)} · Mean ${formatPct(st.mean)} (${st.count} stocks)`
                       return (
                         <td key={`${metric}_${m}`} className={cls} title={title}>
                           <HeatPct value={model.periodScore(m, blend)} />

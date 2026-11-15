@@ -123,7 +123,13 @@ export class ScreenerController implements PageController {
   }
 
   mount() {
-    this.disposer.add(reaction(() => StocksStore.keyFor(this.query), () => void this.load(), { fireImmediately: true }))
+    this.disposer.add(
+      reaction(
+        () => StocksStore.keyFor(this.query),
+        () => void this.load(),
+        { fireImmediately: true }
+      )
+    )
   }
 
   dispose() {
@@ -187,7 +193,9 @@ export class ScreenerController implements PageController {
   }
 
   get configurableColumns(): Column[] {
-    return this.columns.filter((c) => c.key !== 'tradingsymbol' && !(this.embedded && (c.key === 'sector' || c.key === 'industry')))
+    return this.columns.filter(
+      (c) => c.key !== 'tradingsymbol' && !(this.embedded && (c.key === 'sector' || c.key === 'industry'))
+    )
   }
 
   toggleColumn(key: string) {
@@ -430,7 +438,10 @@ export class ScreenerController implements PageController {
     const withReturn = this.sorted.filter((r) => r.stock.returnFor(first) !== null)
     const advancing = withReturn.filter((r) => (r.stock.returnFor(first) as number) > 0).length
     const scored = this.sorted.filter((r) => r.momentum !== null)
-    const top = scored.reduce<ScoredStock | null>((best, r) => (!best || (r.momentum as number) > (best.momentum as number) ? r : best), null)
+    const top = scored.reduce<ScoredStock | null>(
+      (best, r) => (!best || (r.momentum as number) > (best.momentum as number) ? r : best),
+      null
+    )
     return {
       firstMonth: first,
       matching: this.sorted.length,

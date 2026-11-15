@@ -11,5 +11,8 @@ export interface IndustryMomentumResponse {
 }
 
 export interface IndustryMomentumService {
-  getIndustryMomentum(minMarketCap: number, options?: { refresh?: boolean; signal?: AbortSignal }): Promise<IndustryMomentumResponse>
+  getIndustryMomentum(
+    minMarketCap: number,
+    options?: { refresh?: boolean; signal?: AbortSignal }
+  ): Promise<IndustryMomentumResponse>
 }

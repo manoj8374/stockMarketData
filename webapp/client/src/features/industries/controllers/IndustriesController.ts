@@ -49,11 +49,21 @@ export class IndustriesController implements PageController {
 
   constructor(deps: Deps) {
     this.deps = deps
-    makeAutoObservable<IndustriesController, 'deps' | 'disposer'>(this, { resource: observableRef, deps: false, disposer: false }, { autoBind: true })
+    makeAutoObservable<IndustriesController, 'deps' | 'disposer'>(
+      this,
+      { resource: observableRef, deps: false, disposer: false },
+      { autoBind: true }
+    )
   }
 
   mount() {
-    this.disposer.add(reaction(() => this.deps.preferences.minMarketCap, () => void this.load(), { fireImmediately: true }))
+    this.disposer.add(
+      reaction(
+        () => this.deps.preferences.minMarketCap,
+        () => void this.load(),
+        { fireImmediately: true }
+      )
+    )
   }
 
   dispose() {

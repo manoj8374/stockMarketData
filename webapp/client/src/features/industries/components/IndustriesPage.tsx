@@ -2,7 +2,17 @@ import { observer } from 'mobx-react-lite'
 import { useNavigate } from 'react-router-dom'
 import { useStores } from '../../../app/useStores'
 import { useActivePage, useController } from '../../../common/hooks/useController'
-import { Banner, ErrorState, Icon, MiniBar, Segmented, Skeleton, Stat, StatSkeleton, StateBlock } from '../../../common/components'
+import {
+  Banner,
+  ErrorState,
+  Icon,
+  MiniBar,
+  Segmented,
+  Skeleton,
+  Stat,
+  StatSkeleton,
+  StateBlock,
+} from '../../../common/components'
 import { formatPct, industryPath, tone } from '../../../common/utils/format'
 import { PERIODS, periodDescription } from '../models/industryWeights'
 import type { Metric } from '../models/IndustryMomentumModel'
@@ -22,7 +32,11 @@ const Summary = observer(function Summary({ controller }: { controller: Industri
   const positiveTone = s.positive * 2 >= s.scoredCount ? 'up' : 'down'
   return (
     <div className="stat-strip">
-      <Stat label="Industries ranked" value={s.ranked.toLocaleString('en-IN')} sub={`${s.excluded} hidden · under ${s.minStocks} stocks`} />
+      <Stat
+        label="Industries ranked"
+        value={s.ranked.toLocaleString('en-IN')}
+        sub={`${s.excluded} hidden · under ${s.minStocks} stocks`}
+      />
       <Stat
         label="Stocks covered"
         value={s.eligibleStocks.toLocaleString('en-IN')}
@@ -40,14 +54,30 @@ const Summary = observer(function Summary({ controller }: { controller: Industri
       />
       <Stat
         label="Breadth · 1M"
-        value={s.breadth ? <span className={`tone ${s.breadth.share >= 0.5 ? 'up' : 'down'}`}>{Math.round(s.breadth.share * 100)}%</span> : '—'}
+        value={
+          s.breadth ? (
+            <span className={`tone ${s.breadth.share >= 0.5 ? 'up' : 'down'}`}>{Math.round(s.breadth.share * 100)}%</span>
+          ) : (
+            '—'
+          )
+        }
         sub={s.breadth ? `${s.breadth.up} of ${s.breadth.total} stocks rose this month` : 'not enough data'}
       />
     </div>
   )
 })
 
-function LeaderRow({ row, rank, max, onOpen }: { row: IndustryRow; rank: number; max: number; onOpen: (row: IndustryRow) => void }) {
+function LeaderRow({
+  row,
+  rank,
+  max,
+  onOpen,
+}: {
+  row: IndustryRow
+  rank: number
+  max: number
+  onOpen: (row: IndustryRow) => void
+}) {
   const score = row.score as number
   return (
     <button type="button" className="lead-row" onClick={() => onOpen(row)}>
@@ -64,7 +94,13 @@ function LeaderRow({ row, rank, max, onOpen }: { row: IndustryRow; rank: number;
   )
 }
 
-const Leaderboards = observer(function Leaderboards({ controller, onOpen }: { controller: IndustriesController; onOpen: (row: IndustryRow) => void }) {
+const Leaderboards = observer(function Leaderboards({
+  controller,
+  onOpen,
+}: {
+  controller: IndustriesController
+  onOpen: (row: IndustryRow) => void
+}) {
   if (controller.isInitialLoad) {
     return (
       <div className="lead-grid" aria-hidden="true">
@@ -116,7 +152,10 @@ const Leaderboards = observer(function Leaderboards({ controller, onOpen }: { co
 export const IndustriesPage = observer(function IndustriesPage() {
   const { industryMomentum, preferences } = useStores()
   const navigate = useNavigate()
-  const controller = useController(() => new IndustriesController({ industryMomentum, preferences }), [industryMomentum, preferences])
+  const controller = useController(
+    () => new IndustriesController({ industryMomentum, preferences }),
+    [industryMomentum, preferences]
+  )
   useActivePage(controller)
   const open = (row: IndustryRow) => {
     if (row.model.sector) navigate(industryPath(row.model.sector, row.model.industry))
@@ -127,7 +166,9 @@ export const IndustriesPage = observer(function IndustriesPage() {
     <div className="page">
       <div className="page-head">
         <h1>Industry momentum</h1>
-        <p className="sub">Which industries are leading, and how many of their stocks are taking part. Click any industry to see its stocks.</p>
+        <p className="sub">
+          Which industries are leading, and how many of their stocks are taking part. Click any industry to see its stocks.
+        </p>
       </div>
 
       <Summary controller={controller} />
@@ -147,7 +188,12 @@ export const IndustriesPage = observer(function IndustriesPage() {
         </div>
         <span className="spacer" />
         <span className="muted small">Per period, show</span>
-        <Segmented<Metric> label="Metrics per period" options={METRICS} value={controller.metrics} onChange={controller.toggleMetric} />
+        <Segmented<Metric>
+          label="Metrics per period"
+          options={METRICS}
+          value={controller.metrics}
+          onChange={controller.toggleMetric}
+        />
       </div>
 
       {loadError && data && <Banner>Couldn't refresh the data ({loadError.message}). Showing the last data that loaded.</Banner>}
@@ -181,9 +227,9 @@ export const IndustriesPage = observer(function IndustriesPage() {
         )}
         {data && (
           <p className="tbl-foot">
-            Returns don't overlap: {PERIODS.map((m) => `${m}M is ${periodDescription(m)}`).join(', ')}. Stocks without a return for a
-            period are left out of that period. Breadth is the share of stocks with a positive return; it is shown next to the score
-            but is not part of it.
+            Returns don't overlap: {PERIODS.map((m) => `${m}M is ${periodDescription(m)}`).join(', ')}. Stocks without a return
+            for a period are left out of that period. Breadth is the share of stocks with a positive return; it is shown next to
+            the score but is not part of it.
             {data.excludedIndustries > 0 &&
               ` ${data.excludedIndustries} ${data.excludedIndustries === 1 ? 'industry is' : 'industries are'} hidden because ${
                 data.excludedIndustries === 1 ? 'it has' : 'they have'

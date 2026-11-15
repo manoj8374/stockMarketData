@@ -10,7 +10,9 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm test && npm run build",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "chart.js": "^4.6.1",
@@ -43,6 +45,7 @@
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "oxlint": "^1.71.0",
+    "prettier": "^3.10.1",
     "typescript": "~5.9",
     "vite": "^8.1.1"
   }

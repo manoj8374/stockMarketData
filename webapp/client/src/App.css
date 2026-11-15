@@ -95,6 +95,11 @@
 .nav {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
 }
 .nav-label {
@@ -981,6 +986,10 @@ table.tbl {
 .sort-arrow {
   font-family: var(--font-num);
   font-size: 11px;
+}
+.sort-arrow sup {
+  font-size: 9px;
+  margin-left: 1px;
 }
 .tbl th.num,
 .tbl td.num {
@@ -2247,6 +2256,14 @@ button.scard:hover {
   border-radius: 8px;
   font-size: 13px;
 }
+.form-notice {
+  background: var(--accent-soft);
+  color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
 .form-error .icon {
   margin-top: 1px;
 }
@@ -2366,7 +2383,11 @@ button.scard:hover {
   .nav {
     flex-direction: row;
     flex: 1;
+    gap: 0;
     justify-content: space-around;
+  }
+  .nav-group {
+    display: contents;
   }
   .nav a {
     flex-direction: column;

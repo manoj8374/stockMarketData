@@ -9,7 +9,7 @@ async function setup(options: ConstructorParameters<typeof ScreenerController>[1
   const stocks = new StocksStore(service)
   const controller = new ScreenerController({ stocks, preferences }, options)
   controller.mount()
-  await stocks.load(controller.query)
+  await controller.load()
   return { controller, service, preferences, stocks }
 }
 

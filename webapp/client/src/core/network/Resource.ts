@@ -10,9 +10,14 @@ export class Resource<T> {
   error: ApiError | null = null
   loadedAt: Date | null = null
   private controller: AbortController | null = null
+  private inFlight: Promise<void> | null = null
 
   constructor() {
-    makeAutoObservable<Resource<T>, 'controller'>(this, { data: observableRef, controller: false }, { autoBind: true })
+    makeAutoObservable<Resource<T>, 'controller' | 'inFlight' | 'run'>(
+      this,
+      { data: observableRef, controller: false, inFlight: false, run: false },
+      { autoBind: true }
+    )
   }
 
   get isLoading() {
@@ -27,13 +32,31 @@ export class Resource<T> {
     return this.status === ApiStatus.FAILURE
   }
 
-  async load(fetcher: (signal: AbortSignal) => Promise<T>) {
+  // Resolves when the current request settles; lets a second caller wait for
+  // a load that is already running instead of starting another one.
+  get pending(): Promise<void> {
+    return this.inFlight ?? Promise.resolve()
+  }
+
+  load(fetcher: (signal: AbortSignal) => Promise<T>) {
     this.controller?.abort()
     const controller = new AbortController()
     this.controller = controller
     this.status = ApiStatus.LOADING
     this.error = null
+    const request = this.run(fetcher, controller)
+    this.inFlight = request
+    return request
+  }
 
+  cancel() {
+    this.controller?.abort()
+    this.controller = null
+    this.inFlight = null
+    if (this.status === ApiStatus.LOADING) this.status = this.data === null ? ApiStatus.IDLE : ApiStatus.SUCCESS
+  }
+
+  private async run(fetcher: (signal: AbortSignal) => Promise<T>, controller: AbortController) {
     try {
       const data = await fetcher(controller.signal)
       if (controller.signal.aborted) return
@@ -49,13 +72,10 @@ export class Resource<T> {
         this.status = ApiStatus.FAILURE
       })
     } finally {
-      if (this.controller === controller) this.controller = null
+      if (this.controller === controller) {
+        this.controller = null
+        this.inFlight = null
+      }
     }
-  }
-
-  cancel() {
-    this.controller?.abort()
-    this.controller = null
-    if (this.status === ApiStatus.LOADING) this.status = this.data === null ? ApiStatus.IDLE : ApiStatus.SUCCESS
   }
 }

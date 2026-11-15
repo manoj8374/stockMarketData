@@ -70,4 +70,14 @@ describe('Resource', () => {
     expect(resource.error?.message).toBe('boom')
     expect(resource.hasFailed).toBe(true)
   })
+
+  it('exposes the in-flight request so callers can wait for it', async () => {
+    const resource = new Resource<string>()
+    const next = deferred<string>()
+    void resource.load(() => next.promise)
+    const waiting = resource.pending.then(() => resource.data)
+    next.resolve('done')
+    await expect(waiting).resolves.toBe('done')
+    await expect(resource.pending).resolves.toBeUndefined()
+  })
 })

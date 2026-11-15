@@ -3,6 +3,8 @@ import { PreferencesStore } from '../common/stores/PreferencesStore'
 import { UiStore } from '../common/stores/UiStore'
 import { AuthStore } from '../features/auth/stores/AuthStore'
 import { StocksStore } from '../features/screener/stores/StocksStore'
+import { SectorsStore } from '../features/sectors/stores/SectorsStore'
+import { IndustryMomentumStore } from '../features/industries/stores/IndustryMomentumStore'
 import { createApiServices, type Services } from './services'
 
 export class RootStore {
@@ -11,6 +13,8 @@ export class RootStore {
   readonly ui: UiStore
   readonly auth: AuthStore
   readonly stocks: StocksStore
+  readonly sectors: SectorsStore
+  readonly industryMomentum: IndustryMomentumStore
 
   constructor(createServices: (api: ApiClient) => Services = createApiServices) {
     this.api = new ApiClient({ onUnauthorized: (path) => this.auth.handleUnauthorized(path) })
@@ -19,5 +23,7 @@ export class RootStore {
     this.ui = new UiStore()
     this.auth = new AuthStore(services.auth)
     this.stocks = new StocksStore(services.stocks)
+    this.sectors = new SectorsStore(services.sectors)
+    this.industryMomentum = new IndustryMomentumStore(services.industryMomentum)
   }
 }

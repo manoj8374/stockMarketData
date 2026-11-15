@@ -145,7 +145,7 @@ export class ScreenerController implements PageController {
 
   load(refresh = false) {
     this.list = this.deps.stocks.listFor(this.query)
-    if (!refresh && this.list.data) return Promise.resolve()
+    if (!refresh && (this.list.data || this.list.isLoading)) return this.list.pending
     return this.deps.stocks.load(this.query, { refresh })
   }
 

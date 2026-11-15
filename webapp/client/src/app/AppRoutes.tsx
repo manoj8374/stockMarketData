@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { observer } from 'mobx-react-lite'
 import { useStores } from './useStores'
-import StockScreener from '../StockScreener'
+import { ScreenerPage } from '../features/screener/components/ScreenerPage'
 import SectorsBrowser from '../SectorsBrowser'
 import IndustryMomentum from '../IndustryMomentum'
 import Portfolio from '../Portfolio'
@@ -12,7 +12,7 @@ export const AppRoutes = observer(function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<StockScreener minMarketCap={minMarketCap} />} />
+      <Route path="/" element={<ScreenerPage />} />
       <Route path="/sectors" element={<SectorsBrowser minMarketCap={minMarketCap} />} />
       <Route path="/sectors/:sector" element={<SectorsBrowser minMarketCap={minMarketCap} />} />
       <Route path="/sectors/:sector/:industry" element={<SectorsBrowser minMarketCap={minMarketCap} />} />

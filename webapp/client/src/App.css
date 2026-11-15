@@ -2495,6 +2495,90 @@ button.scard:hover {
   white-space: nowrap;
 }
 
+.chart-card .card-head h2 span {
+  font-family: var(--font-num);
+}
+.chart-quote {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+.chart-quote .live-price {
+  font-size: 16px;
+  font-weight: 600;
+}
+.chart-box {
+  position: relative;
+  height: 340px;
+  padding: 12px 8px 4px 12px;
+}
+.chart-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+.chart-foot {
+  margin: 0;
+  padding: 8px 16px 12px;
+}
+.chain-wrap {
+  max-height: min(70vh, 720px);
+}
+.tbl.chain th,
+.tbl.chain td {
+  text-align: right;
+}
+.tbl.chain th.th-group {
+  text-align: center;
+}
+.tbl.chain .strike {
+  text-align: center;
+  font-weight: 600;
+  background: var(--surface-2);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.tbl.chain .strike .tag {
+  margin-left: 6px;
+}
+.tbl.chain td.itm {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.tbl.chain tr.atm td {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.oi-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.oi-bar {
+  width: 54px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+  display: inline-flex;
+}
+.oi-call .oi-bar {
+  justify-content: flex-end;
+}
+.oi-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+.oi-call .oi-bar i {
+  background: color-mix(in srgb, var(--down) 70%, transparent);
+}
+.oi-put .oi-bar i {
+  background: color-mix(in srgb, var(--up) 70%, transparent);
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 1100px) {
   .kpis {
@@ -2674,7 +2758,16 @@ button.scard:hover {
   }
   .nav a {
     min-width: 0;
-    padding: 6px 6px;
+    padding: 6px 2px;
+    font-size: 10px;
+    flex: 1;
+    text-align: center;
+  }
+  .oi-bar {
+    display: none;
+  }
+  .chart-box {
+    height: 260px;
   }
   .pager {
     justify-content: center;

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useStores } from '../../../app/useStores'
 import { useActivePage, useController } from '../../../common/hooks/useController'
@@ -7,6 +6,7 @@ import { formatCompact, formatPct, formatSignedMoney, tone } from '../../../comm
 import { WatchlistController } from '../controllers/WatchlistController'
 import { displaySymbol } from '../stores/WatchlistStore'
 import { LivePrice } from './LivePrice'
+import { CandleChartPanel } from './chart/CandleChartPanel'
 
 interface RowProps {
   symbol: string
@@ -131,7 +131,7 @@ const AddSymbol = observer(function AddSymbol({ controller }: { controller: Watc
   )
 })
 
-export const WatchlistPage = observer(function WatchlistPage({ chart }: { chart?: (symbol: string) => ReactNode }) {
+export const WatchlistPage = observer(function WatchlistPage() {
   const { live, watchlist, services } = useStores()
   const controller = useController(
     () => new WatchlistController({ live, watchlist, service: services.live }),
@@ -157,7 +157,7 @@ export const WatchlistPage = observer(function WatchlistPage({ chart }: { chart?
           </StateBlock>
         </section>
       ) : (
-        <div className={`watch-layout ${chart ? 'has-chart' : ''}`}>
+        <div className={`watch-layout ${chartSymbol ? 'has-chart' : ''}`}>
           <section
             className={`card table-card ${live.isLive ? '' : 'is-stale'}`}
             title={live.isLive ? undefined : 'Showing the last prices received'}
@@ -201,7 +201,7 @@ export const WatchlistPage = observer(function WatchlistPage({ chart }: { chart?
               </div>
             )}
           </section>
-          {chart && chartSymbol && chart(chartSymbol)}
+          {chartSymbol && <CandleChartPanel key={chartSymbol} symbol={chartSymbol} />}
         </div>
       )}
     </div>

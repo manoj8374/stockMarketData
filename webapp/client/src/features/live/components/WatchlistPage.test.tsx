@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { WatchlistPage } from './WatchlistPage'
 import { createTestStore, renderWithStores } from '../../../test/renderWithStores'
 import { fakeTransport, tick } from '../../../test/FakeTransport'
+import { charts } from '../../../test/candleChartStub'
 
 async function renderWatchlist() {
   const transport = fakeTransport()
@@ -12,10 +13,14 @@ async function renderWatchlist() {
   return { store, transport: () => transport.ref.current! }
 }
 
-const rowFor = (symbol: string) => screen.getByText(symbol).closest('tr') as HTMLElement
+const table = () => screen.getByRole('table')
+const rowFor = (symbol: string) => within(table()).getByText(symbol).closest('tr') as HTMLElement
 
 describe('WatchlistPage', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    charts.length = 0
+  })
 
   it('subscribes to the saved symbols and shows live prices as they arrive', async () => {
     const { transport } = await renderWatchlist()
@@ -31,7 +36,7 @@ describe('WatchlistPage', () => {
     expect(within(rowFor('RELIANCE')).getByText('103.00')).toHaveClass('flash-down')
   })
 
-  it('adds a symbol from search and subscribes to it', async () => {
+  it('adds a symbol from search, subscribes to it and charts it', async () => {
     const { transport, store } = await renderWatchlist()
     const user = userEvent.setup({ advanceTimers: (ms) => jest.advanceTimersByTime(ms) })
     jest.useFakeTimers()
@@ -46,14 +51,36 @@ describe('WatchlistPage', () => {
     }
     expect(store.watchlist.has('NSE:ITC')).toBe(true)
     expect(transport().subscribed).toContain('NSE:ITC')
-    expect(screen.getByText('ITC')).toBeInTheDocument()
+    expect(within(table()).getByText('ITC')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'ITC chart' })).toBeInTheDocument()
   })
 
   it('removes a symbol and releases its subscription', async () => {
     const { transport } = await renderWatchlist()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Remove SBIN' }))
-    expect(screen.queryByText('SBIN')).not.toBeInTheDocument()
+    expect(within(table()).queryByText('SBIN')).not.toBeInTheDocument()
     expect(transport().subscribed).not.toContain('NSE:SBIN')
+  })
+
+  it('charts the selected symbol and keeps the last candle live', async () => {
+    const { transport } = await renderWatchlist()
+    expect(transport().sent).toContainEqual({ type: 'history', symbol: 'NSE:NIFTY 50' })
+    expect(screen.getByText('Loading 1-minute candles…')).toBeInTheDocument()
+
+    const minute = Math.floor(Date.now() / 60_000) * 60_000
+    act(() =>
+      transport().emit({ type: 'candles', symbol: 'NSE:NIFTY 50', candles: [{ t: minute, o: 100, h: 101, l: 99, c: 100, v: 0 }] })
+    )
+    expect(charts).toHaveLength(1)
+    expect(screen.getByText(/^1 candles/)).toBeInTheDocument()
+
+    act(() => transport().emit({ type: 'ticks', ticks: [tick('NSE:NIFTY 50', 106, { ts: minute + 5000 })] }))
+    expect(charts[0].updates).toBe(1)
+    expect(charts[0].candles[0]).toMatchObject({ h: 106, c: 106 })
+
+    await userEvent.setup().click(rowFor('RELIANCE'))
+    expect(charts[0].destroyed).toBe(true)
+    expect(transport().sent).toContainEqual({ type: 'history', symbol: 'NSE:RELIANCE' })
   })
 
   it('explains when the live feed is not set up', async () => {

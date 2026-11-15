@@ -5,6 +5,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '[.]css$': 'identity-obj-proxy',
+    '(^|/)candleChart$': '<rootDir>/src/test/candleChartStub.ts',
   },
   clearMocks: true,
 }

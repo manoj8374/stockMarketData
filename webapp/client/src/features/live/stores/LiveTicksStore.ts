@@ -90,7 +90,10 @@ export class LiveTicksStore {
     return () => {
       release()
       const count = (this.charted.get(symbol) ?? 1) - 1
-      if (count > 0) return this.charted.set(symbol, count)
+      if (count > 0) {
+        this.charted.set(symbol, count)
+        return
+      }
       this.charted.delete(symbol)
       runInAction(() => this.candles.delete(symbol))
     }

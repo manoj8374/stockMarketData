@@ -27,7 +27,10 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   },
   {
     label: 'Markets',
-    items: [{ to: '/watchlist', label: 'Watchlist', icon: 'watchlist' }],
+    items: [
+      { to: '/watchlist', label: 'Watchlist', icon: 'watchlist' },
+      { to: '/option-chain', label: 'Option chain', icon: 'optionChain' },
+    ],
   },
   {
     label: 'Account',

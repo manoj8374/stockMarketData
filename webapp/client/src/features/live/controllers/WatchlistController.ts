@@ -37,8 +37,9 @@ export class WatchlistController implements PageController {
       reaction(
         () => this.deps.watchlist.symbols,
         (symbols) => {
-          release?.()
+          const previous = release
           release = symbols.length ? this.deps.live.watch(symbols) : null
+          previous?.()
         },
         { fireImmediately: true }
       )

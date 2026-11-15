@@ -10,6 +10,7 @@ import { IndustryMomentumStore } from '../features/industries/stores/IndustryMom
 import { PortfolioStore } from '../features/portfolio/stores/PortfolioStore'
 import { LiveTicksStore } from '../features/live/stores/LiveTicksStore'
 import { WatchlistStore } from '../features/live/stores/WatchlistStore'
+import { OptionChainStore } from '../features/live/stores/OptionChainStore'
 import type { LiveService, TransportFactory } from '../features/live/services/LiveService'
 import { createApiServices, type Services } from './services'
 
@@ -35,6 +36,7 @@ export class RootStore {
   readonly portfolio: PortfolioStore
   readonly live: LiveTicksStore
   readonly watchlist: WatchlistStore
+  readonly optionChains: OptionChainStore
 
   constructor(createServices: (api: ApiClient) => Services = createApiServices, options: RootStoreOptions = {}) {
     this.api = new ApiClient({ onUnauthorized: (path) => this.auth.handleUnauthorized(path) })
@@ -48,6 +50,7 @@ export class RootStore {
     this.portfolio = new PortfolioStore(this.services.portfolio)
     this.live = new LiveTicksStore(options.createTransport ?? socketTransport(this.services.live), options.scheduleFrame)
     this.watchlist = new WatchlistStore()
+    this.optionChains = new OptionChainStore(this.services.live)
 
     reaction(
       () => this.auth.user?.username ?? null,

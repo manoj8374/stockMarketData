@@ -71,4 +71,4 @@ npm run format       Prettier
 
 Environment variables for the functions: `DB_*`, `SESSION_SECRET`, `AUTH_USERS`,
 `KITE_API_KEY`, `KITE_API_SECRET`, optional `GUEST_USERNAME`, and
-`LIVE_RELAY_URL` once the relay is deployed (see `../relay/README.md`).
+`LIVE_TOKEN_SECRET` and `LIVE_RELAY_URL` once the relay is deployed (see `../relay/README.md`).

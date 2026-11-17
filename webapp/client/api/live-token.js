@@ -10,6 +10,7 @@ export default async (req, res) => {
     return;
   }
   const relayUrl = (process.env.LIVE_RELAY_URL || "").replace(/\/+$/, "") || null;
+  const configured = relayUrl && process.env.LIVE_TOKEN_SECRET;
   res.setHeader("Cache-Control", "no-store");
-  res.status(200).json({ relayUrl, token: relayUrl ? signLiveToken(session) : null });
+  res.status(200).json({ relayUrl: configured ? relayUrl : null, token: configured ? signLiveToken(session) : null });
 };

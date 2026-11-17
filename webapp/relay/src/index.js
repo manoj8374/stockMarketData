@@ -6,8 +6,8 @@ import { SimulatedFeed } from './feeds/simulatedFeed.js'
 const env = process.env
 const port = Number(env.PORT) || 8090
 
-if (!env.SESSION_SECRET) {
-  console.error('SESSION_SECRET is required (the same value the web app uses).')
+if (!env.LIVE_TOKEN_SECRET) {
+  console.error('LIVE_TOKEN_SECRET is required (the same value as on the web app).')
   process.exit(1)
 }
 
@@ -35,6 +35,6 @@ const allowedOrigins = (env.ALLOWED_ORIGINS ?? '')
   .map((o) => o.trim())
   .filter(Boolean)
 
-const { server } = createServer({ feed, secret: env.SESSION_SECRET, allowedOrigins })
+const { server } = createServer({ feed, secret: env.LIVE_TOKEN_SECRET, allowedOrigins })
 feed.start()
 server.listen(port, () => console.log(`Live relay on :${port} (${feed.mode} feed)`))

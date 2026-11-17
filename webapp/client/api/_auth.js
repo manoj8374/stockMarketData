@@ -11,9 +11,9 @@ function getUsers() {
   }
 }
 
-function sign(payload) {
+function sign(payload, secret = process.env.SESSION_SECRET) {
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const sig = crypto.createHmac("sha256", process.env.SESSION_SECRET).update(data).digest("base64url");
+  const sig = crypto.createHmac("sha256", secret).update(data).digest("base64url");
   return `${data}.${sig}`;
 }
 
@@ -67,9 +67,13 @@ export function login(username, password) {
 const LIVE_TOKEN_TTL_MS = 10 * 60 * 1000;
 
 // Short-lived token the browser presents to the live relay (a separate
-// service on another domain, so it can't read the session cookie).
+// service on another domain, so it can't read the session cookie). Signed
+// with its own secret so the relay never holds the one that signs sessions.
 export function signLiveToken(session) {
-  return sign({ username: session.username, role: session.role, aud: "live", exp: Date.now() + LIVE_TOKEN_TTL_MS });
+  return sign(
+    { username: session.username, role: session.role, aud: "live", exp: Date.now() + LIVE_TOKEN_TTL_MS },
+    process.env.LIVE_TOKEN_SECRET
+  );
 }
 
 // Credentials for the shared guest account, shown on the login page so

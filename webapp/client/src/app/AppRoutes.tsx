@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { /* lazy, */ Suspense } from 'react'
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { observer } from 'mobx-react-lite'
 import { useStores } from './useStores'
@@ -10,12 +10,13 @@ import { IndustriesPage } from '../features/industries/components/IndustriesPage
 import { PortfolioPage } from '../features/portfolio/components/PortfolioPage'
 import { Skeleton } from '../common/components'
 
+// Live markets are hidden for now.
 // The live pages pull in Chart.js; loading them on demand keeps it out of the
 // first download for everyone who only uses the screener.
-const WatchlistPage = lazy(() => import('../features/live/components/WatchlistPage').then((m) => ({ default: m.WatchlistPage })))
-const OptionChainPage = lazy(() =>
-  import('../features/live/components/OptionChainPage').then((m) => ({ default: m.OptionChainPage }))
-)
+// const WatchlistPage = lazy(() => import('../features/live/components/WatchlistPage').then((m) => ({ default: m.WatchlistPage })))
+// const OptionChainPage = lazy(() =>
+//   import('../features/live/components/OptionChainPage').then((m) => ({ default: m.OptionChainPage }))
+// )
 
 function PageLoading() {
   return (
@@ -47,8 +48,8 @@ export const AppRoutes = observer(function AppRoutes() {
         <Route path="/sectors/:sector" element={<SectorRoute />} />
         <Route path="/sectors/:sector/:industry" element={<IndustryRoute />} />
         <Route path="/industries" element={<IndustriesPage />} />
-        <Route path="/watchlist" element={<WatchlistPage />} />
-        <Route path="/option-chain" element={<OptionChainPage />} />
+        {/* <Route path="/watchlist" element={<WatchlistPage />} /> */}
+        {/* <Route path="/option-chain" element={<OptionChainPage />} /> */}
         <Route path="/portfolio" element={auth.isOwner ? <PortfolioPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

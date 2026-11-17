@@ -15,17 +15,18 @@ import { FiltersDrawer } from './FiltersDrawer'
 import { ColumnsMenu } from './ColumnsMenu'
 import { BackScorePanel } from './BackScore'
 import { QuickLook } from './QuickLook'
-import type { WatchlistStore } from '../../live/stores/WatchlistStore'
-
-const WatchlistButton = observer(function WatchlistButton({ symbol, watchlist }: { symbol: string; watchlist: WatchlistStore }) {
-  const added = watchlist.has(symbol)
-  return (
-    <button type="button" className="btn" disabled={added || watchlist.isFull} onClick={() => watchlist.add(symbol)}>
-      <Icon name={added ? 'watchlist' : 'plus'} />
-      {added ? 'In watchlist' : 'Add to watchlist'}
-    </button>
-  )
-})
+// Live markets are hidden for now, so the "Add to watchlist" button is too.
+// import type { WatchlistStore } from '../../live/stores/WatchlistStore'
+//
+// const WatchlistButton = observer(function WatchlistButton({ symbol, watchlist }: { symbol: string; watchlist: WatchlistStore }) {
+//   const added = watchlist.has(symbol)
+//   return (
+//     <button type="button" className="btn" disabled={added || watchlist.isFull} onClick={() => watchlist.add(symbol)}>
+//       <Icon name={added ? 'watchlist' : 'plus'} />
+//       {added ? 'In watchlist' : 'Add to watchlist'}
+//     </button>
+//   )
+// })
 
 interface ScreenerPageProps {
   fixedSector?: string
@@ -40,7 +41,7 @@ export const ScreenerPage = observer(function ScreenerPage({
   onBack,
   headerExtra,
 }: ScreenerPageProps) {
-  const { stocks, preferences, watchlist } = useStores()
+  const { stocks, preferences /* , watchlist */ } = useStores()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const controller = useController(
@@ -170,7 +171,7 @@ export const ScreenerPage = observer(function ScreenerPage({
           weights={controller.normalizedWeights}
           backWeights={controller.backWeights}
           onClose={controller.closeQuickLook}
-          actions={<WatchlistButton symbol={`NSE:${quickRow.stock.symbol}`} watchlist={watchlist} />}
+          // actions={<WatchlistButton symbol={`NSE:${quickRow.stock.symbol}`} watchlist={watchlist} />}
           onOpenIndustry={
             !controller.embedded && quickRow.stock.sector && quickRow.stock.industry
               ? () => navigate(industryPath(quickRow.stock.sector as string, quickRow.stock.industry as string))

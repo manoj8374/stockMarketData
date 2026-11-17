@@ -26,7 +26,7 @@ export const LoginPage = observer(function LoginPage() {
           <ul className="facts">
             <li>Daily candles for every NSE equity</li>
             <li>Weighted momentum scoring</li>
-            <li>Live watchlist and option chain</li>
+            {/* <li>Live watchlist and option chain</li> */}
             <li>Kite portfolio</li>
           </ul>
         </div>
@@ -100,7 +100,7 @@ export const LoginPage = observer(function LoginPage() {
                 </span>
                 <div>
                   <b id="guest-title">Guest access</b>
-                  <span>Read-only: Screener, Sectors, Industries and live markets</span>
+                  <span>Read-only: Screener, Sectors and Industries</span>
                 </div>
               </div>
               <dl className="guest-creds">

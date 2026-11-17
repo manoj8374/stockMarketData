@@ -25,13 +25,14 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
       { to: '/industries', label: 'Industries', icon: 'industries' },
     ],
   },
-  {
-    label: 'Markets',
-    items: [
-      { to: '/watchlist', label: 'Watchlist', icon: 'watchlist' },
-      { to: '/option-chain', label: 'Option chain', icon: 'optionChain' },
-    ],
-  },
+  // Live markets are hidden for now.
+  // {
+  //   label: 'Markets',
+  //   items: [
+  //     { to: '/watchlist', label: 'Watchlist', icon: 'watchlist' },
+  //     { to: '/option-chain', label: 'Option chain', icon: 'optionChain' },
+  //   ],
+  // },
   {
     label: 'Account',
     items: [{ to: '/portfolio', label: 'Portfolio', icon: 'portfolio', ownerOnly: true }],
